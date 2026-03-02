@@ -1,0 +1,5 @@
+.vs
+*.user
+/RetryPP
+/Win32
+/x64

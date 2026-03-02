@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="RetryPP.vcxproj" Id="71b91086-29a5-4e48-a394-72cde7950d5b" />
+</Solution>

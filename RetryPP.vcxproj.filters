@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\RetryPP">
+      <UniqueIdentifier>{53bd4d7b-f9ee-452e-920f-68cfef5b8b82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\RetryPP\Limit">
+      <UniqueIdentifier>{a4ee164e-0ae3-4e02-ab95-5f53b4534879}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\RetryPP\Backoff">
+      <UniqueIdentifier>{cc76a6c8-e828-48a4-8238-93da9e4372b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\RetryPP\Backoff\Modifier">
+      <UniqueIdentifier>{76bba7ef-8868-4577-ac26-45221003ac9e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\RetryPP\Backoff\Strategy.h">
+      <Filter>Header Files\RetryPP\Backoff</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Backoff\Linear.h">
+      <Filter>Header Files\RetryPP\Backoff</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Backoff\Exponential.h">
+      <Filter>Header Files\RetryPP\Backoff</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Limit\Limit.h">
+      <Filter>Header Files\RetryPP\Limit</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Limit\TimeLimit.h">
+      <Filter>Header Files\RetryPP\Limit</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Limit\RetryLimit.h">
+      <Filter>Header Files\RetryPP\Limit</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Backoff\Fixed.h">
+      <Filter>Header Files\RetryPP\Backoff</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Backoff\Modifier\Cap.h">
+      <Filter>Header Files\RetryPP\Backoff\Modifier</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Backoff\Modifier\Jitter.h">
+      <Filter>Header Files\RetryPP\Backoff\Modifier</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Backoff\Modifier\Modifier.h">
+      <Filter>Header Files\RetryPP\Backoff\Modifier</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Backoff\Immediate.h">
+      <Filter>Header Files\RetryPP\Backoff</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Limit\NoLimit.h">
+      <Filter>Header Files\RetryPP\Limit</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Classifier.h">
+      <Filter>Header Files\RetryPP</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Policy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Exceptions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Readme.md" />
+  </ItemGroup>
+</Project>
