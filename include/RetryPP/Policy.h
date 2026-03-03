@@ -142,9 +142,15 @@ namespace RetryPP
 		}
 	};
 
+	template<class T>
+	struct RetryResult
+	{
+		T code;
+		Classification classification;
+	};
 
 	template<class T, class F, class... Args>
-	T withRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
+	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
 	{
 		if (!policy.valid())
 			throw InvalidPolicy();
@@ -163,22 +169,22 @@ namespace RetryPP
 
 				// If code is a success code, return it
 				if (classification == Classification::Success)
-					return code;
+					return { code, classification };
 
 				// If code is a permanent error, return it
 				if (classification == Classification::Permanent)
-					return code;
+					return { code, classification };
 
 				// Otherwise it must be a transient code...
 
 				// If retries were exhausted, return the code
 				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					return code;
+					return { code, classification };
 			}
 			catch (...)
 			{
-				// If exceptions are treated as permanent errors, just rethrow the exception
-				if (!classifier.treatExceptionAsTransient())
+				// If the exception is classified as a permanent error, just rethrow it
+				if (classifier.classify(std::current_exception()) == Classification::Permanent)
 					throw;
 
 				// If retries were exhausted, rethrow the exception

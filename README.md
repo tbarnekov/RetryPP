@@ -250,14 +250,40 @@ int main()
         .build();
 
     // Retry my_operation(HttpResponseCode) using supplied policy and classifier.
-    HttpResponseCode result = withRetry(policy, classifier, &my_operation, code);
-
+    RetryResult result = withRetry(policy, classifier, &my_operation, code);
+    if (result.classification != Classification::Success)
+        ...
     ...
 }
 ```
 
 # Exception handling
 (Pending documentation)
+
+```cpp
+    void exceptionClassifier(std::exception_ptr e)
+    {
+        try
+        {
+            if (e)
+                std::rethrow_exception(e);
+            return RetryPP::Classification::Success;
+        }
+        catch (const MyTransientException&)
+        {
+            return RetryPP::Classification::Transient;
+        }
+        catch (...)
+        {
+            return RetryPP::Classification::Permanent;
+        }
+    }
+
+    Classifier<HttpResponseCode> classifier = ClassifierBuilder<HttpResponseCode>()
+        .withSuccessRange(100, 399)
+        .withExceptionClassifier(&exceptionClassifier)
+        .build();
+```
 
 
 # License

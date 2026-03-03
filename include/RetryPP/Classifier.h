@@ -24,8 +24,10 @@ SOFTWARE.
 #pragma once
 #include "Exceptions.h"
 #include <concepts>
+#include <functional>
 #include <ranges>
 #include <set>
+#include <exception>
 #include <vector>
 
 namespace RetryPP
@@ -81,7 +83,6 @@ namespace RetryPP
 			using Code = Range::Code;
 
 		protected:
-			bool m_treat_exception_as_transient = false;
 			Classification m_undefined_code_classification = Classification::Transient;
 
 			std::set<Code> m_success_codes;
@@ -91,6 +92,8 @@ namespace RetryPP
 			std::vector<Range> m_success_ranges;
 			std::vector<Range> m_transient_ranges;
 			std::vector<Range> m_permanent_ranges;
+
+			std::function<Classification(std::exception_ptr)> m_exception_classifier;
 		};
 
 	} // namespace internal
@@ -116,7 +119,6 @@ namespace RetryPP
 			return !m_success_codes.empty() && !m_success_ranges.empty();
 		}
 
-		bool treatExceptionAsTransient() const noexcept { return m_treat_exception_as_transient; }
 		const std::span<const Code> successCodes() const noexcept { return m_success_codes; }
 		const std::span<const Range> successRanges() const noexcept { return m_success_ranges; }
 		const std::span<const Code> transientCodes() const noexcept { return m_transient_codes; }
@@ -176,8 +178,15 @@ namespace RetryPP
 			return m_undefined_code_classification;
 		}
 
+		constexpr Classification classify(std::exception_ptr e) const
+		{
+			if (m_exception_classifier)
+				return m_exception_classifier(e);
+
+			std::rethrow_exception(e);
+		}
+
 	private:
-		using internal::ClassifierData<T>::m_treat_exception_as_transient;
 		using internal::ClassifierData<T>::m_undefined_code_classification;
 		using internal::ClassifierData<T>::m_success_codes;
 		using internal::ClassifierData<T>::m_transient_codes;
@@ -185,6 +194,7 @@ namespace RetryPP
 		using internal::ClassifierData<T>::m_success_ranges;
 		using internal::ClassifierData<T>::m_transient_ranges;
 		using internal::ClassifierData<T>::m_permanent_ranges;
+		using internal::ClassifierData<T>::m_exception_classifier;
 
 		Classifier() noexcept = default;
 	};
@@ -195,12 +205,6 @@ namespace RetryPP
 	{
 	public:
 		using internal::ClassifierData<T>::Code;
-
-		ClassifierBuilder& treatExceptionAsTransient(bool value) noexcept
-		{
-			m_treat_exception_as_transient = value;
-			return *this;
-		}
 
 		ClassifierBuilder& withSuccessCode(const T& code)
 		{
@@ -262,6 +266,12 @@ namespace RetryPP
 			return *this;
 		}
 
+		ClassifierBuilder& withExceptionClassifier(const std::function<Classification(std::exception_ptr)>& f)
+		{
+			m_exception_classifier = f;
+			return *this;
+		}
+
 		Classifier<T> build() const
 		{
 			if (m_success_codes.empty() && m_success_ranges.empty())
@@ -271,7 +281,6 @@ namespace RetryPP
 		}
 
 	private:
-		using internal::ClassifierData<T>::m_treat_exception_as_transient;
 		using internal::ClassifierData<T>::m_undefined_code_classification;
 		using internal::ClassifierData<T>::m_success_codes;
 		using internal::ClassifierData<T>::m_transient_codes;
@@ -279,6 +288,7 @@ namespace RetryPP
 		using internal::ClassifierData<T>::m_success_ranges;
 		using internal::ClassifierData<T>::m_transient_ranges;
 		using internal::ClassifierData<T>::m_permanent_ranges;
+		using internal::ClassifierData<T>::m_exception_classifier;
 	};
 
 } // namespace RetryPP
