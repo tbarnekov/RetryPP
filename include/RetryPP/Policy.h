@@ -209,6 +209,63 @@ namespace RetryPP
 			std::this_thread::sleep_for(delay);
 		}
 	}
+
+	template<class TaskType, class T, class F, class... Args>
+	TaskType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
+	{
+		if (!policy.valid())
+			throw InvalidPolicy();
+
+		auto backoff = policy.createBackoffStrategy();
+		auto backoff_modifiers = policy.createBackoffModifiers();
+		auto limiter = policy.createLimitPolicy();
+
+		while (true)
+		{
+			std::optional<T> code;
+			try
+			{
+				code = co_await f(std::forward<Args>(args)...);
+
+				auto classification = classifier.classify(code.value());
+
+				// If code is a success code, return it
+				if (classification == Classification::Success)
+					co_return { code.value(), classification};
+
+				// If code is a permanent error, return it
+				if (classification == Classification::Permanent)
+					co_return { code.value(), classification };
+
+				// Otherwise it must be a transient code...
+
+				// If retries were exhausted, return the code
+				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
+					co_return { code.value(), classification };
+			}
+			catch (...)
+			{
+				// If the exception is classified as a permanent error, just rethrow it
+				if (classifier.classify(std::current_exception()) == Classification::Permanent)
+					throw;
+
+				// If retries were exhausted, rethrow the exception
+				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
+					throw;
+			}
+
+			auto delay = backoff->next();
+			for (const auto& modifier : backoff_modifiers)
+				modifier->apply(delay);
+
+			// Clamp delay to either calculated delay or time remaining on the limiter
+			delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
+
+			// Notify caller that we're retrying
+			if (code)
+				classifier.onRetry(code, delay);
+
+			std::this_thread::sleep_for(delay);
 		}
 	}
 
