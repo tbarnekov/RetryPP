@@ -24,10 +24,12 @@ SOFTWARE.
 #pragma once
 #include "Exceptions.h"
 #include <concepts>
+#include <chrono>
+#include <exception>
 #include <functional>
+#include <optional>
 #include <ranges>
 #include <set>
-#include <exception>
 #include <vector>
 
 namespace RetryPP
@@ -94,6 +96,7 @@ namespace RetryPP
 			std::vector<Range> m_permanent_ranges;
 
 			std::function<Classification(std::exception_ptr)> m_exception_classifier;
+			std::function<void(const std::optional<Code>&, std::chrono::milliseconds)> m_retry_callback;
 		};
 
 	} // namespace internal
@@ -126,7 +129,7 @@ namespace RetryPP
 		const std::span<const Code> permanentCodes() const noexcept { return m_permanent_codes; }
 		const std::span<const Range> permanentRanges() const noexcept { return m_permanent_ranges; }
 
-		constexpr bool isSuccessCode(const Code& code) const noexcept
+		bool isSuccessCode(const Code& code) const
 		{
 			const auto in_range = [&code](const Range& range) { return range.in_range(code); };
 			return (
@@ -137,7 +140,7 @@ namespace RetryPP
 				std::ranges::find(m_permanent_codes, code) == m_permanent_codes.cend();
 		}
 
-		constexpr bool isTransientCode(const Code& code) const noexcept
+		bool isTransientCode(const Code& code) const
 		{
 			const auto in_range = [&code](const Range& range) { return range.in_range(code); };
 			return (
@@ -148,7 +151,7 @@ namespace RetryPP
 				std::ranges::find(m_permanent_codes, code) == m_permanent_codes.cend();
 		}
 
-		constexpr bool isPermanentCode(const Code& code) const noexcept
+		bool isPermanentCode(const Code& code) const
 		{
 			const auto in_range = [&code](const Range& range) { return range.in_range(code); };
 			return (
@@ -159,7 +162,7 @@ namespace RetryPP
 				std::ranges::find(m_transient_codes, code) == m_transient_codes.cend();
 		}
 
-		constexpr Classification classify(const Code& code) const noexcept
+		Classification classify(const Code& code) const
 		{
 			Classification classification = m_undefined_code_classification;
 
@@ -178,12 +181,18 @@ namespace RetryPP
 			return m_undefined_code_classification;
 		}
 
-		constexpr Classification classify(std::exception_ptr e) const
+		Classification classify(std::exception_ptr e) const
 		{
 			if (m_exception_classifier)
 				return m_exception_classifier(e);
 
 			std::rethrow_exception(e);
+		}
+
+		void onRetry(const std::optional<Code>& code, std::chrono::milliseconds sleep) const
+		{
+			if (m_retry_callback)
+				m_retry_callback(code, sleep);
 		}
 
 	private:
@@ -195,6 +204,7 @@ namespace RetryPP
 		using internal::ClassifierData<T>::m_transient_ranges;
 		using internal::ClassifierData<T>::m_permanent_ranges;
 		using internal::ClassifierData<T>::m_exception_classifier;
+		using internal::ClassifierData<T>::m_retry_callback;
 
 		Classifier() noexcept = default;
 	};
@@ -272,6 +282,12 @@ namespace RetryPP
 			return *this;
 		}
 
+		ClassifierBuilder& withRetryCallback(const std::function<void(const std::optional<Code>& code, std::chrono::milliseconds)>& f)
+		{
+			m_retry_callback = f;
+			return *this;
+		}
+
 		Classifier<T> build() const
 		{
 			if (m_success_codes.empty() && m_success_ranges.empty())
@@ -289,6 +305,7 @@ namespace RetryPP
 		using internal::ClassifierData<T>::m_transient_ranges;
 		using internal::ClassifierData<T>::m_permanent_ranges;
 		using internal::ClassifierData<T>::m_exception_classifier;
+		using internal::ClassifierData<T>::m_retry_callback;
 	};
 
 } // namespace RetryPP

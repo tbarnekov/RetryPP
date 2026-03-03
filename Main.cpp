@@ -89,6 +89,14 @@ int main()
 		.withLimit<RetryLimit>(3)
 		.build();
 
+	const auto onRetry = [](const std::optional<HttpResponseCode>& code, std::chrono::milliseconds delay)
+		{
+			if (code.has_value())
+				std::cout << std::format("Got code {}. Retrying in {} milliseconds\n", code.value(), delay.count()).c_str();
+			else
+				std::cout << std::format("Caight transient exception. Retrying in {} milliseconds\n", delay.count()).c_str();
+		};
+
 	try
 	{
 		Classifier classifier = ClassifierBuilder<HttpResponseCode>()
@@ -96,6 +104,7 @@ int main()
 			.withTransientCodes({ 408, 429, 500, 502, 503, 504 })
 			.withUndefinedCodeClassification(Classification::Permanent)
 			.withExceptionClassifier(&exceptionClassifier)
+			.withRetryCallback(onRetry)
 			.build();
 
 		auto op1 = []() -> HttpResponseCode { return operation1(); };

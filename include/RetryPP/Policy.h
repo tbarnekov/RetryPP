@@ -27,7 +27,10 @@ SOFTWARE.
 #include "Backoff/Strategy.h"
 #include "Backoff/Modifier/Modifier.h"
 #include "Limit/Limit.h"
+#include <chrono>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <thread>
 
 namespace RetryPP
@@ -161,25 +164,26 @@ namespace RetryPP
 
 		while (true)
 		{
+			std::optional<T> code;
 			try
 			{
-				T code = f(std::forward<Args>(args)...);
+				code = f(std::forward<Args>(args)...);
 
-				auto classification = classifier.classify(code);
+				auto classification = classifier.classify(code.value());
 
 				// If code is a success code, return it
 				if (classification == Classification::Success)
-					return { code, classification };
+					return { code.value(), classification };
 
 				// If code is a permanent error, return it
 				if (classification == Classification::Permanent)
-					return { code, classification };
+					return { code.value(), classification };
 
 				// Otherwise it must be a transient code...
 
 				// If retries were exhausted, return the code
 				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					return { code, classification };
+					return { code.value(), classification };
 			}
 			catch (...)
 			{
@@ -196,7 +200,15 @@ namespace RetryPP
 			for (const auto& modifier : backoff_modifiers)
 				modifier->apply(delay);
 
-			std::this_thread::sleep_for(std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) });
+			// Clamp delay to either calculated delay or time remaining on the limiter
+			delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
+
+			// Notify caller that we're retrying
+			classifier.onRetry(code, delay);
+
+			std::this_thread::sleep_for(delay);
+		}
+	}
 		}
 	}
 
