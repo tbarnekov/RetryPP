@@ -30,19 +30,20 @@ SOFTWARE.
 #include <optional>
 #include <ranges>
 #include <set>
+#include <type_traits>
 #include <vector>
 
 namespace RetryPP
 {
 	
-	template<std::totally_ordered T>
+	template<class T, class Comp = std::less<T>>
 	class Range
 	{
 	public:
 		using Code = std::decay_t<T>;
 
 		constexpr explicit Range(const Code& start, const Code& end) noexcept
-			: m_start{ std::min(start, end) }, m_end{ std::max(start, end) }
+			: m_start{ std::min(start, end, Comp{}) }, m_end{ std::max(start, end, Comp{}) }
 		{
 		}
 
@@ -57,7 +58,8 @@ namespace RetryPP
 
 		constexpr bool in_range(const Code& code) const noexcept
 		{
-			return code >= m_start && code <= m_end;
+			Comp comp;
+			return !comp(code, m_start) && !comp(m_end, code); // Equivalent to code >= m_start && code <= m_end
 		}
 
 	private:
@@ -77,19 +79,19 @@ namespace RetryPP
 	namespace internal
 	{
 
-		template<class T>
+		template<class T, class Comp>
 		class ClassifierData
 		{
 		public:
-			using Range = Range<T>;
+			using Range = Range<T, Comp>;
 			using Code = Range::Code;
 
 		protected:
 			Classification m_undefined_code_classification = Classification::Transient;
 
-			std::set<Code> m_success_codes;
-			std::set<Code> m_transient_codes;
-			std::set<Code> m_permanent_codes;
+			std::set<Code, Comp> m_success_codes;
+			std::set<Code, Comp> m_transient_codes;
+			std::set<Code, Comp> m_permanent_codes;
 
 			std::vector<Range> m_success_ranges;
 			std::vector<Range> m_transient_ranges;
@@ -102,12 +104,12 @@ namespace RetryPP
 	} // namespace internal
 
 
-	template<class T>
-	class Classifier final : public internal::ClassifierData<T>
+	template<class T, class Comp = std::less<T>>
+	class Classifier final : public internal::ClassifierData<T, Comp>
 	{
 	public:
-		using internal::ClassifierData<T>::Code;
-		using internal::ClassifierData<T>::Range;
+		using internal::ClassifierData<T, Comp>::Code;
+		using internal::ClassifierData<T, Comp>::Range;
 
 		Classifier(const Classifier&) noexcept = default;
 		Classifier(Classifier&&) noexcept = default;
@@ -131,35 +133,32 @@ namespace RetryPP
 
 		bool isSuccessCode(const Code& code) const
 		{
-			const auto in_range = [&code](const Range& range) { return range.in_range(code); };
 			return (
-				std::ranges::find(m_success_codes, code) != m_success_codes.cend() ||
-				std::ranges::find_if(m_success_ranges, in_range) != m_success_ranges.cend()
+				std::ranges::find_if(m_success_codes, Equals{ code }) != m_success_codes.cend() ||
+				std::ranges::find_if(m_success_ranges, InRange{ code }) != m_success_ranges.cend()
 				) &&
-				std::ranges::find(m_transient_codes, code) == m_transient_codes.cend() &&
-				std::ranges::find(m_permanent_codes, code) == m_permanent_codes.cend();
+				std::ranges::find_if(m_transient_codes, Equals{ code }) == m_transient_codes.cend() &&
+				std::ranges::find_if(m_permanent_codes, Equals{ code }) == m_permanent_codes.cend();
 		}
 
 		bool isTransientCode(const Code& code) const
 		{
-			const auto in_range = [&code](const Range& range) { return range.in_range(code); };
 			return (
-				std::ranges::find(m_transient_codes, code) != m_transient_codes.cend() ||
-				std::ranges::find_if(m_transient_ranges, in_range) != m_transient_ranges.cend()
+				std::ranges::find_if(m_transient_codes, Equals{ code }) != m_transient_codes.cend() ||
+				std::ranges::find_if(m_transient_ranges, InRange{ code }) != m_transient_ranges.cend()
 				) &&
-				std::ranges::find(m_success_codes, code) == m_success_codes.cend() &&
-				std::ranges::find(m_permanent_codes, code) == m_permanent_codes.cend();
+				std::ranges::find_if(m_success_codes, Equals{ code }) == m_success_codes.cend() &&
+				std::ranges::find_if(m_permanent_codes, Equals{ code }) == m_permanent_codes.cend();
 		}
 
 		bool isPermanentCode(const Code& code) const
 		{
-			const auto in_range = [&code](const Range& range) { return range.in_range(code); };
 			return (
-				std::ranges::find(m_permanent_codes, code) != m_permanent_codes.cend() ||
-				std::ranges::find_if(m_permanent_ranges, in_range) != m_permanent_ranges.cend()
+				std::ranges::find_if(m_permanent_codes, Equals{ code }) != m_permanent_codes.cend() ||
+				std::ranges::find_if(m_permanent_ranges, InRange{ code }) != m_permanent_ranges.cend()
 				) &&
-				std::ranges::find(m_success_codes, code) == m_success_codes.cend() &&
-				std::ranges::find(m_transient_codes, code) == m_transient_codes.cend();
+				std::ranges::find_if(m_success_codes, Equals{ code }) == m_success_codes.cend() &&
+				std::ranges::find_if(m_transient_codes, Equals{ code }) == m_transient_codes.cend();
 		}
 
 		Classification classify(const Code& code) const
@@ -196,25 +195,47 @@ namespace RetryPP
 		}
 
 	private:
-		using internal::ClassifierData<T>::m_undefined_code_classification;
-		using internal::ClassifierData<T>::m_success_codes;
-		using internal::ClassifierData<T>::m_transient_codes;
-		using internal::ClassifierData<T>::m_permanent_codes;
-		using internal::ClassifierData<T>::m_success_ranges;
-		using internal::ClassifierData<T>::m_transient_ranges;
-		using internal::ClassifierData<T>::m_permanent_ranges;
-		using internal::ClassifierData<T>::m_exception_classifier;
-		using internal::ClassifierData<T>::m_retry_callback;
+		struct InRange
+		{
+			constexpr bool operator()(const Range& range) const noexcept
+			{
+				return range.in_range(m_code);
+			}
+
+			const Code& m_code;
+		};
+
+		struct Equals
+		{
+			constexpr bool operator()(const Code& code) const noexcept
+			{
+				Comp comp;
+				return !comp(code, m_code) && !comp(m_code, code); // Equivalent to code == m_code
+			}
+
+			const Code& m_code;
+		};
+
+		using internal::ClassifierData<T, Comp>::m_undefined_code_classification;
+		using internal::ClassifierData<T, Comp>::m_success_codes;
+		using internal::ClassifierData<T, Comp>::m_transient_codes;
+		using internal::ClassifierData<T, Comp>::m_permanent_codes;
+		using internal::ClassifierData<T, Comp>::m_success_ranges;
+		using internal::ClassifierData<T, Comp>::m_transient_ranges;
+		using internal::ClassifierData<T, Comp>::m_permanent_ranges;
+		using internal::ClassifierData<T, Comp>::m_exception_classifier;
+		using internal::ClassifierData<T, Comp>::m_retry_callback;
 
 		Classifier() noexcept = default;
 	};
 
 
-	template<class T>
-	class ClassifierBuilder final : public internal::ClassifierData<T>
+	template<class T, class Comp = std::less<T>>
+	class ClassifierBuilder final : public internal::ClassifierData<T, Comp>
 	{
 	public:
-		using internal::ClassifierData<T>::Code;
+		using internal::ClassifierData<T, Comp>::Code;
+		using internal::ClassifierData<T, Comp>::Range;
 
 		ClassifierBuilder& withSuccessCode(const T& code)
 		{
@@ -222,7 +243,7 @@ namespace RetryPP
 			return *this;
 		}
 
-		ClassifierBuilder& withSuccessCodes(const std::set<Code>& codes)
+		ClassifierBuilder& withSuccessCodes(const std::set<Code, Comp>& codes)
 		{
 			m_success_codes.insert(codes.cbegin(), codes.cend());
 			return *this;
@@ -230,7 +251,7 @@ namespace RetryPP
 
 		ClassifierBuilder& withSuccessRange(const Code& start, const Code& end)
 		{
-			m_success_ranges.emplace_back(Range<Code>{ start, end });
+			m_success_ranges.emplace_back(Range{ start, end });
 			return *this;
 		}
 
@@ -240,7 +261,7 @@ namespace RetryPP
 			return *this;
 		}
 
-		ClassifierBuilder& withTransientCodes(const std::set<Code>& codes)
+		ClassifierBuilder& withTransientCodes(const std::set<Code, Comp>& codes)
 		{
 			m_transient_codes.insert(codes.cbegin(), codes.cend());
 			return *this;
@@ -248,7 +269,7 @@ namespace RetryPP
 
 		ClassifierBuilder& withTransientRange(const Code& start, const Code& end)
 		{
-			m_transient_ranges.emplace_back(Range<Code>{ start, end });
+			m_transient_ranges.emplace_back(Range{ start, end });
 			return *this;
 		}
 
@@ -258,7 +279,7 @@ namespace RetryPP
 			return *this;
 		}
 
-		ClassifierBuilder& withPermanentCodes(const std::set<Code>& codes)
+		ClassifierBuilder& withPermanentCodes(const std::set<Code, Comp>& codes)
 		{
 			m_permanent_codes.insert(codes.cbegin(), codes.cend());
 			return *this;
@@ -266,7 +287,7 @@ namespace RetryPP
 
 		ClassifierBuilder& withPermanentRange(const Code& start, const Code& end)
 		{
-			m_permanent_ranges.emplace_back(Range<Code>{ start, end });
+			m_permanent_ranges.emplace_back(Range{ start, end });
 			return *this;
 		}
 
@@ -288,24 +309,24 @@ namespace RetryPP
 			return *this;
 		}
 
-		Classifier<T> build() const
+		Classifier<T, Comp> build() const
 		{
 			if (m_success_codes.empty() && m_success_ranges.empty())
 				throw InvalidClassifier("At least one success code must be defined");
 
-			return Classifier<T>{ *reinterpret_cast<const Classifier<T>*>(this) };
+			return Classifier<T, Comp>{ *reinterpret_cast<const Classifier<T, Comp>*>(this) };
 		}
 
 	private:
-		using internal::ClassifierData<T>::m_undefined_code_classification;
-		using internal::ClassifierData<T>::m_success_codes;
-		using internal::ClassifierData<T>::m_transient_codes;
-		using internal::ClassifierData<T>::m_permanent_codes;
-		using internal::ClassifierData<T>::m_success_ranges;
-		using internal::ClassifierData<T>::m_transient_ranges;
-		using internal::ClassifierData<T>::m_permanent_ranges;
-		using internal::ClassifierData<T>::m_exception_classifier;
-		using internal::ClassifierData<T>::m_retry_callback;
+		using internal::ClassifierData<T, Comp>::m_undefined_code_classification;
+		using internal::ClassifierData<T, Comp>::m_success_codes;
+		using internal::ClassifierData<T, Comp>::m_transient_codes;
+		using internal::ClassifierData<T, Comp>::m_permanent_codes;
+		using internal::ClassifierData<T, Comp>::m_success_ranges;
+		using internal::ClassifierData<T, Comp>::m_transient_ranges;
+		using internal::ClassifierData<T, Comp>::m_permanent_ranges;
+		using internal::ClassifierData<T, Comp>::m_exception_classifier;
+		using internal::ClassifierData<T, Comp>::m_retry_callback;
 	};
 
 } // namespace RetryPP

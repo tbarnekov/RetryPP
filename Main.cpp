@@ -77,6 +77,51 @@ std::string toString(RetryPP::Classification c)
 	return {};
 }
 
+class CustomResult
+{
+public:
+	constexpr CustomResult(int v) noexcept
+		: value{ v }
+	{
+	}
+
+	constexpr int getValue() const noexcept { return value; }
+
+private:
+	int value = 0;
+};
+
+// std::less specialization for CustomResult
+template<>
+struct std::less<CustomResult>
+{
+	constexpr bool operator()(const CustomResult& a, const CustomResult& b) const noexcept
+	{
+		return a.getValue() < b.getValue();
+	}
+};
+
+// hand-crafted comparator for CustomResult
+struct CustomResultComparator
+{
+	constexpr bool operator()(const CustomResult& a, const CustomResult& b) const noexcept
+	{
+		return a.getValue() < b.getValue();
+	}
+};
+
+template<typename T>
+void printResult(const T& code, RetryPP::Classification classification)
+{
+	std::cout << std::format("Classified code {}  as {}\n", code, toString(classification));
+}
+
+template<typename T>
+void printResult(const RetryPP::RetryResult<T>& result)
+{
+	printResult(result.code, result.classification);
+}
+
 int main()
 {
 	using namespace std::chrono_literals;
@@ -86,8 +131,20 @@ int main()
 		.withStrategy<Exponential>(200ms)
 		.withModifier<Jitter<Algorithm::Full>>()
 		.withModifier<Cap>(10s)
-		.withLimit<RetryLimit>(3)
+		.withLimit<RetryLimit>(5)
 		.build();
+
+	auto customClassifier = ClassifierBuilder<CustomResult, CustomResultComparator>()
+		.withSuccessRange({ 299 }, { 200 })
+		.withTransientCodes({ { 251 }, { 252 } })
+		.withUndefinedCodeClassification(RetryPP::Classification::Permanent)
+		.build();
+
+	for (const auto& code : { CustomResult{ 250 }, CustomResult{ 251 }, CustomResult{ 401} })
+	{
+		auto result = customClassifier.classify(code);
+		printResult(code.getValue(), result);
+	}
 
 	const auto onRetry = [](const std::optional<HttpResponseCode>& code, std::chrono::milliseconds delay)
 		{
@@ -112,14 +169,13 @@ int main()
 
 		const auto start = std::chrono::steady_clock::now();
 
-		withRetry(policy, classifier, &operation2, 1, start);
-		withRetry(policy, classifier, op1);
-		withRetry(policy, classifier, op2, 1, start);
-		withRetry(policy, classifier, []() -> HttpResponseCode { return operation1(); });
-		withRetry(policy, classifier, [](HttpResponseCode responseCode, const std::chrono::steady_clock::time_point& start) -> HttpResponseCode { return operation2(responseCode, start); }, 1, start);
+		printResult(withRetry(policy, classifier, &operation2, 1, start));
+		printResult(withRetry(policy, classifier, op1));
+		printResult(withRetry(policy, classifier, op2, 1, start));
+		printResult(withRetry(policy, classifier, []() -> HttpResponseCode { return operation1(); }));
+		printResult(withRetry(policy, classifier, [](HttpResponseCode responseCode, const std::chrono::steady_clock::time_point& start) -> HttpResponseCode { return operation2(responseCode, start); }, 1, start));
 
-		RetryResult result = withRetry(policy, classifier, &exceptionalOperation);
-		std::cout << std::format("Returned code: {} [{}]\n", result.code, toString(result.classification));
+		printResult(withRetry(policy, classifier, &exceptionalOperation));
 	}
 	catch (const std::exception& e)
 	{
