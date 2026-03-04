@@ -164,26 +164,26 @@ namespace RetryPP
 
 		while (true)
 		{
-			std::optional<T> code;
+			std::variant<T, std::exception_ptr> result;
 			try
 			{
-				code = f(std::forward<Args>(args)...);
+				result = f(std::forward<Args>(args)...);
 
-				auto classification = classifier.classify(code.value());
+				auto classification = classifier.classify(std::get<T>(result));
 
 				// If code is a success code, return it
 				if (classification == Classification::Success)
-					return { code.value(), classification };
+					return { std::get<T>(result), classification };
 
 				// If code is a permanent error, return it
 				if (classification == Classification::Permanent)
-					return { code.value(), classification };
+					return { std::get<T>(result), classification };
 
 				// Otherwise it must be a transient code...
 
 				// If retries were exhausted, return the code
 				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					return { code.value(), classification };
+					return { std::get<T>(result), classification };
 			}
 			catch (...)
 			{
@@ -194,6 +194,8 @@ namespace RetryPP
 				// If retries were exhausted, rethrow the exception
 				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
 					throw;
+
+				result = std::current_exception();
 			}
 
 			auto delay = backoff->next();
@@ -204,7 +206,7 @@ namespace RetryPP
 			delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
 
 			// Notify caller that we're retrying
-			classifier.onRetry(code, delay);
+			classifier.onRetry(result, delay);
 
 			std::this_thread::sleep_for(delay);
 		}
@@ -222,26 +224,26 @@ namespace RetryPP
 
 		while (true)
 		{
-			std::optional<T> code;
+			std::variant<T, std::exception_ptr> result;
 			try
 			{
-				code = co_await f(std::forward<Args>(args)...);
+				result = co_await f(std::forward<Args>(args)...);
 
-				auto classification = classifier.classify(code.value());
+				auto classification = classifier.classify(std::get<T>(result));
 
 				// If code is a success code, return it
 				if (classification == Classification::Success)
-					co_return { code.value(), classification};
+					co_return { std::get<T>(result), classification};
 
 				// If code is a permanent error, return it
 				if (classification == Classification::Permanent)
-					co_return { code.value(), classification };
+					co_return { std::get<T>(result), classification };
 
 				// Otherwise it must be a transient code...
 
 				// If retries were exhausted, return the code
 				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					co_return { code.value(), classification };
+					co_return { std::get<T>(result), classification };
 			}
 			catch (...)
 			{
@@ -252,6 +254,8 @@ namespace RetryPP
 				// If retries were exhausted, rethrow the exception
 				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
 					throw;
+
+				result = std::current_exception();
 			}
 
 			auto delay = backoff->next();
@@ -262,8 +266,7 @@ namespace RetryPP
 			delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
 
 			// Notify caller that we're retrying
-			if (code)
-				classifier.onRetry(code, delay);
+			classifier.onRetry(result, delay);
 
 			std::this_thread::sleep_for(delay);
 		}

@@ -60,9 +60,9 @@ HttpResponseCode exceptionalOperation()
 	} increment_x;
 
 	if (x % 6 == 0)
-		throw std::logic_error("Logic error");
+		throw std::logic_error("Permanent error");
 	if (x % 5 == 0)
-		throw std::runtime_error("Runtime error");
+		throw std::runtime_error("Transient error");
 	return x;
 }
 
@@ -146,12 +146,33 @@ int main()
 		printResult(code.getValue(), result);
 	}
 
-	const auto onRetry = [](const std::optional<HttpResponseCode>& code, std::chrono::milliseconds delay)
+	const auto onRetry = [](const std::variant<HttpResponseCode, std::exception_ptr>& result, std::chrono::milliseconds delay)
 		{
-			if (code.has_value())
-				std::cout << std::format("Got code {}. Retrying in {} milliseconds\n", code.value(), delay.count()).c_str();
-			else
-				std::cout << std::format("Caight transient exception. Retrying in {} milliseconds\n", delay.count()).c_str();
+			if (std::holds_alternative<HttpResponseCode>(result))
+				std::cout << std::format("Got code {}. Retrying in {} milliseconds\n", std::get<HttpResponseCode>(result), delay.count()).c_str();
+			else if (std::holds_alternative<std::exception_ptr>(result))
+			{
+				try
+				{
+					std::rethrow_exception(std::get<std::exception_ptr>(result));
+				}
+				catch (const std::runtime_error& e)
+				{
+					std::cout << std::format("Runtime error: {}\n", e.what());
+				}
+				catch (const std::logic_error& e)
+				{
+					std::cout << std::format("Logic error: {}\n", e.what());
+				}
+				catch (const std::exception& e)
+				{
+					std::cout << std::format("Exception: {}\n", e.what());
+				}
+				catch (...)
+				{
+					std::cout << std::format("Unknown exception\n");
+				}
+			}
 		};
 
 	try

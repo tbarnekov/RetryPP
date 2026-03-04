@@ -27,7 +27,7 @@ SOFTWARE.
 #include <chrono>
 #include <exception>
 #include <functional>
-#include <optional>
+#include <variant>
 #include <ranges>
 #include <set>
 #include <type_traits>
@@ -98,7 +98,7 @@ namespace RetryPP
 			std::vector<Range> m_permanent_ranges;
 
 			std::function<Classification(std::exception_ptr)> m_exception_classifier;
-			std::function<void(const std::optional<Code>&, std::chrono::milliseconds)> m_retry_callback;
+			std::function<void(const std::variant<Code, std::exception_ptr>&, std::chrono::milliseconds)> m_retry_callback;
 		};
 
 	} // namespace internal
@@ -188,10 +188,10 @@ namespace RetryPP
 			std::rethrow_exception(e);
 		}
 
-		void onRetry(const std::optional<Code>& code, std::chrono::milliseconds sleep) const
+		void onRetry(const std::variant<Code, std::exception_ptr>& result, std::chrono::milliseconds sleep) const
 		{
 			if (m_retry_callback)
-				m_retry_callback(code, sleep);
+				m_retry_callback(result, sleep);
 		}
 
 	private:
@@ -303,7 +303,7 @@ namespace RetryPP
 			return *this;
 		}
 
-		ClassifierBuilder& withRetryCallback(const std::function<void(const std::optional<Code>& code, std::chrono::milliseconds)>& f)
+		ClassifierBuilder& withRetryCallback(const std::function<void(const std::variant<Code, std::exception_ptr>&, std::chrono::milliseconds)>& f)
 		{
 			m_retry_callback = f;
 			return *this;
