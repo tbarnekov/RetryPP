@@ -33,8 +33,9 @@ with a ```Policy``` and uses the result of an operation to classify it as a succ
 or a permanent (non-retryable) failure.
 
 The type declared in the instantiation must match the return type of the operation being retried.
-The type must satisfy the [TotallyOrdered](https://en.cppreference.com/w/cpp/concepts/totally_ordered.html) constraint meaning it
-supports all comparison operators.
+
+In order for the ```Classifier``` to function it must be able to perform compare operations on the return type of the operation. This
+requires that the return type has a specialization of std::less<T> or that a custom comparator is provided.
 
 The ```Classifier``` allows you to specify either individual codes or ranges of codes for each category of success,
 temporary failure or permanent failure.
@@ -127,7 +128,7 @@ The ```NoLimit``` will allow retrying infinitely. It should not be used and is o
 # Usage
 
 
-## Build a ```Policy```
+## Build a Policy
 RetryPP uses the Builder pattern to construct policies. Each ```Policy``` must have an associated ```Strategy``` and ```Limit```.
 The use of ```Modifier```s is optional but recommended.
 
@@ -158,9 +159,7 @@ The example constructs a ```Policy``` with an exponential backoff strategy start
 3 attempts. The ```Cap``` modifier ensures that the retry delay never exceed 10 seconds.
 
 
-## Build a ```Classifier```
-
-
+## Build a Classifier
 RetryPP uses the Builder pattern to construct classifiers. Each ```Classifier``` must have at least one success code defined.
 
 Use a ```ClassifierBuilder``` to build a ```Classifier```:
@@ -257,25 +256,36 @@ int main()
 }
 ```
 
+
 # Exception handling
-(Pending documentation)
+```RetryPP``` supports operations that throw exceptions. If your operation can throw exceptions you should add an exception
+classifier callback when building your ```Classifier```.
+
+If the ```Classifier``` does not have an exception classifier and the operation
+throws an exception, it will be treated as a permanent failure and the exception will be passed on to the caller.
+
+The exception classifier must return a ```Classification``` for the exception passed to it. If the exception classifier
+returns ```Classification::Permanent``` the exception will be floated on to the caller. Any other return value will
+be treated as a transient failure and cause the operation to be retried in accordance with the supplied ```Policy```.
+
+If the operation throws an exception and retries are exhausted the exception will be passed on to the caller.
 
 ```cpp
-    void exceptionClassifier(std::exception_ptr e)
+    Classification exceptionClassifier(std::exception_ptr e)
     {
         try
         {
             if (e)
                 std::rethrow_exception(e);
-            return RetryPP::Classification::Success;
+            return Classification::Success;
         }
         catch (const MyTransientException&)
         {
-            return RetryPP::Classification::Transient;
+            return Classification::Transient;
         }
         catch (...)
         {
-            return RetryPP::Classification::Permanent;
+            return Classification::Permanent;
         }
     }
 
@@ -283,6 +293,60 @@ int main()
         .withSuccessRange(100, 399)
         .withExceptionClassifier(&exceptionClassifier)
         .build();
+```
+
+
+# Retry callbacks
+```RetryPP``` supports calling a callback before going to sleep when performing a retry. This is useful for updating UI or logging retries.
+The callback is only called the operation experiences a transient failure. The callback receive an std::variant<T, std::exception_ptr> and
+the calculated sleep interval before the next retry attempt. The std::exception_ptr is populated if the operation threw an exception that
+was classified as transient.
+
+```cpp
+    void retryCallback(const std::variant<HttpResponseCode, std::exception_ptr>& result, std::chrono::milliseconds delay)
+    {
+        if (std::holds_alternative<HttpResponseCode>(result))
+        {
+            ... // do something with the response code fetchable by std::get<HttpResponseCode>(result)
+        }
+        else if (std::holds_alternative<std::exception_ptr>(result))
+        {
+            try
+            {
+                std::rethrow_exception(std::get<std::exception_ptr>(result));
+            }
+            catch (const MyTransientException& e)
+            {
+                ... // do something for MyTransientException
+            }
+            catch (const std::exception& e)
+            {
+                ... // do something for std::exception
+            }
+            catch (...)
+            {
+                ... // do something for unknown exceptions
+            }
+        }
+    }
+
+    Classifier<HttpResponseCode> classifier = ClassifierBuilder<HttpResponseCode>()
+        .withSuccessRange(100, 299)
+        .withRetryCallback(&retryCallback)
+        .build();
+```
+
+
+# Async support (co_await)
+...(to be documented)...
+
+```cpp
+    task<HttpResponseCode> asyncOperation()
+    {
+        ...
+    }
+
+    RetryResult<HttpResponseCode> result = co_await withAsyncRetry<task<RetryResult<HttpResponseCode>>>(policy, classifier, &asyncOperation);
 ```
 
 

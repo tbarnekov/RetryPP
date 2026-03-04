@@ -30,7 +30,7 @@ SOFTWARE.
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <optional>
+#include <variant>
 #include <thread>
 
 namespace RetryPP

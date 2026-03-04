@@ -140,7 +140,7 @@ int main()
 		.withUndefinedCodeClassification(RetryPP::Classification::Permanent)
 		.build();
 
-	for (const auto& code : { CustomResult{ 250 }, CustomResult{ 251 }, CustomResult{ 401} })
+	for (const auto& code : std::initializer_list<CustomResult>{ { 250 }, { 251 }, { 401} })
 	{
 		auto result = customClassifier.classify(code);
 		printResult(code.getValue(), result);
