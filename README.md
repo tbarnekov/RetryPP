@@ -25,6 +25,7 @@ to the delay returned by the selected strategy and finally aborts retrying based
 RetryPP uses the Builder pattern to construct ```Policy``` objects. Once created, the ```Policy``` is immutable, thread-safe and can
 be re-used as many times as you like.
 
+The ```PolicyBuilder``` can be reused to create multiple ```Policy`` objects from the same builder.
 
 ## Classifiers
 
@@ -45,6 +46,8 @@ permanent even though they fall into the successful range or vice-versa.
 
 RetryPP uses the Builder pattern to construct ```Classifier``` objects. Once created, the ```Classifier``` is immutable, thread-safe and
 can be re-used as many times as you like.
+
+The ```ClassifierBuilder``` can be reused to create multiple ```Classifier``` objects from the same builder.
 
 
 ## Retry Strategies
