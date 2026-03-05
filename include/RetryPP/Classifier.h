@@ -111,8 +111,8 @@ namespace RetryPP
 	class Classifier final : public internal::ClassifierData<T, Comp>
 	{
 	public:
-		using internal::ClassifierData<T, Comp>::Code;
-		using internal::ClassifierData<T, Comp>::Range;
+		using Code = internal::ClassifierData<T, Comp>::Code;
+		using Range = internal::ClassifierData<T, Comp>::Range;
 
 		Classifier(const Classifier&) noexcept = default;
 		Classifier(Classifier&&) noexcept = default;
@@ -251,8 +251,8 @@ namespace RetryPP
 	class ClassifierBuilder final : public internal::ClassifierData<T, Comp>
 	{
 	public:
-		using internal::ClassifierData<T, Comp>::Code;
-		using internal::ClassifierData<T, Comp>::Range;
+		using Code = internal::ClassifierData<T, Comp>::Code;
+		using Range = internal::ClassifierData<T, Comp>::Range;
 
 		ClassifierBuilder() noexcept = default;
 		ClassifierBuilder(const ClassifierBuilder&) noexcept = default;
@@ -261,7 +261,7 @@ namespace RetryPP
 		ClassifierBuilder& operator=(ClassifierBuilder&&) noexcept = default;
 		~ClassifierBuilder() noexcept = default;
 
-		explicit ClassifierBuilder(const Classifier<T, Comp>& classifier) noexcept : internal::ClassifierData{ classifier } {}
+		explicit ClassifierBuilder(const Classifier<T, Comp>& classifier) noexcept : internal::ClassifierData<T, Comp>{ classifier } {}
 
 		ClassifierBuilder& withSuccessCode(const T& code)
 		{
