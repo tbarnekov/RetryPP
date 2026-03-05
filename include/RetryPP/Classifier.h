@@ -254,6 +254,15 @@ namespace RetryPP
 		using internal::ClassifierData<T, Comp>::Code;
 		using internal::ClassifierData<T, Comp>::Range;
 
+		ClassifierBuilder() noexcept = default;
+		ClassifierBuilder(const ClassifierBuilder&) noexcept = default;
+		ClassifierBuilder(ClassifierBuilder&&) noexcept = default;
+		ClassifierBuilder& operator=(const ClassifierBuilder&) noexcept = default;
+		ClassifierBuilder& operator=(ClassifierBuilder&&) noexcept = default;
+		~ClassifierBuilder() noexcept = default;
+
+		explicit ClassifierBuilder(const Classifier<T, Comp>& classifier) noexcept : internal::ClassifierData{ classifier } {}
+
 		ClassifierBuilder& withSuccessCode(const T& code)
 		{
 			m_success_codes.insert(code);

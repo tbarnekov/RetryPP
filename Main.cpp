@@ -199,9 +199,9 @@ int main()
 		printResult(withRetry(policy, classifier, &exceptionalOperation));
 
 		std::stop_source token_source;
-		Policy policy2 = PolicyBuilder()
+		Policy policy2 = PolicyBuilder(policy)
 			.withStrategy<Linear>(3s)
-			.withLimit<RetryLimit>(3)
+			.resetModifiers()
 			.build();
 
 		std::jthread t([&] {

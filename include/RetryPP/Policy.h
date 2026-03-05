@@ -100,15 +100,8 @@ namespace RetryPP
 		friend class PolicyBuilder;
 
 		Policy() noexcept = default;
-		explicit Policy(const internal::PolicyData& data) noexcept
-			: internal::PolicyData{ data }
-		{
-		}
-
-		explicit Policy(internal::PolicyData&& data) noexcept
-			: internal::PolicyData{ std::move(data) }
-		{
-		}
+		explicit Policy(const internal::PolicyData& data) noexcept : internal::PolicyData{ data } {}
+		explicit Policy(internal::PolicyData&& data) noexcept : internal::PolicyData{ std::move(data) } {}
 
 		using internal::PolicyData::m_backoff_factory;
 		using internal::PolicyData::m_backoff_modifier_factories;
@@ -119,6 +112,15 @@ namespace RetryPP
 	class PolicyBuilder final : public internal::PolicyData
 	{
 	public:
+		PolicyBuilder() noexcept = default;
+		PolicyBuilder(const PolicyBuilder&) noexcept = default;
+		PolicyBuilder(PolicyBuilder&&) noexcept = default;
+		PolicyBuilder& operator=(const PolicyBuilder&) noexcept = default;
+		PolicyBuilder& operator=(PolicyBuilder&&) noexcept = default;
+		~PolicyBuilder() noexcept = default;
+
+		explicit PolicyBuilder(const Policy& policy) noexcept : internal::PolicyData{ policy } {}
+
 		template<RetryStrategy T, class... Args>
 		PolicyBuilder& withStrategy(Args&&... args)
 		{
@@ -137,6 +139,12 @@ namespace RetryPP
 		PolicyBuilder& withLimit(Args&&... args)
 		{
 			m_limit_factory = createFactory<T>(std::forward<Args>(args)...);
+			return *this;
+		}
+
+		PolicyBuilder& resetModifiers() noexcept
+		{
+			m_backoff_modifier_factories.clear();
 			return *this;
 		}
 
