@@ -197,6 +197,21 @@ int main()
 		printResult(withRetry(policy, classifier, [](HttpResponseCode responseCode, const std::chrono::steady_clock::time_point& start) -> HttpResponseCode { return operation2(responseCode, start); }, 1, start));
 
 		printResult(withRetry(policy, classifier, &exceptionalOperation));
+
+		std::stop_source token_source;
+		Policy policy2 = PolicyBuilder()
+			.withStrategy<Linear>(3s)
+			.withLimit<RetryLimit>(3)
+			.build();
+
+		std::jthread t([&] {
+			std::this_thread::sleep_for(5s);
+			token_source.request_stop();
+		});
+
+		const auto start2 = std::chrono::steady_clock::now();
+		printResult(withRetry(policy2, classifier, token_source.get_token(), []() -> HttpResponseCode { return 408; }));
+		std::cout << std::format("Finished in {} milliseconds\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start2));
 	}
 	catch (const std::exception& e)
 	{
