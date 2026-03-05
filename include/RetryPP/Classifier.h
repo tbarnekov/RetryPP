@@ -104,6 +104,9 @@ namespace RetryPP
 	} // namespace internal
 
 
+	template<class T, class Comp>
+	class ClassifierBuilder;
+
 	template<class T, class Comp = std::less<T>>
 	class Classifier final : public internal::ClassifierData<T, Comp>
 	{
@@ -130,6 +133,7 @@ namespace RetryPP
 		const std::span<const Range> transientRanges() const noexcept { return m_transient_ranges; }
 		const std::span<const Code> permanentCodes() const noexcept { return m_permanent_codes; }
 		const std::span<const Range> permanentRanges() const noexcept { return m_permanent_ranges; }
+		const std::function<Classification(std::exception_ptr)> exceptionClassifier() const noexcept { return m_exception_classifier; }
 
 		bool isSuccessCode(const Code& code) const
 		{
@@ -195,6 +199,8 @@ namespace RetryPP
 		}
 
 	private:
+		friend class ClassifierBuilder<T, Comp>;
+
 		struct InRange
 		{
 			constexpr bool operator()(const Range& range) const noexcept
@@ -227,6 +233,17 @@ namespace RetryPP
 		using internal::ClassifierData<T, Comp>::m_retry_callback;
 
 		Classifier() noexcept = default;
+
+		explicit Classifier(const internal::ClassifierData<T, Comp>& data) noexcept
+			: internal::ClassifierData<T, Comp>{ data }
+		{
+		}
+
+		explicit Classifier(internal::ClassifierData<T, Comp>&& data) noexcept
+			: internal::ClassifierData<T, Comp>{ std::move(data) }
+		{
+		}
+
 	};
 
 
@@ -309,12 +326,12 @@ namespace RetryPP
 			return *this;
 		}
 
-		Classifier<T, Comp> build() const
+		const Classifier<Code, Comp> build() const
 		{
 			if (m_success_codes.empty() && m_success_ranges.empty())
 				throw InvalidClassifier("At least one success code must be defined");
 
-			return Classifier<T, Comp>{ *reinterpret_cast<const Classifier<T, Comp>*>(this) };
+			return Classifier<Code, Comp>{ *this };
 		}
 
 	private:

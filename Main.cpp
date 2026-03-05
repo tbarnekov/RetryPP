@@ -110,13 +110,13 @@ struct CustomResultComparator
 	}
 };
 
-template<typename T>
+template<class T>
 void printResult(const T& code, RetryPP::Classification classification)
 {
 	std::cout << std::format("Classified code {}  as {}\n", code, toString(classification));
 }
 
-template<typename T>
+template<class T>
 void printResult(const RetryPP::RetryResult<T>& result)
 {
 	printResult(result.code, result.classification);

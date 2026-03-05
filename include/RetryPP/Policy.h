@@ -53,6 +53,9 @@ namespace RetryPP
 	} // namespace internal
 
 
+	class PolicyBuilder;
+
+
 	class Policy final : public internal::PolicyData
 	{
 	public:
@@ -91,7 +94,18 @@ namespace RetryPP
 		}
 
 	private:
+		friend class PolicyBuilder;
+
 		Policy() noexcept = default;
+		explicit Policy(const internal::PolicyData& data) noexcept
+			: internal::PolicyData{ data }
+		{
+		}
+
+		explicit Policy(internal::PolicyData&& data) noexcept
+			: internal::PolicyData{ std::move(data) }
+		{
+		}
 
 		using internal::PolicyData::m_backoff_factory;
 		using internal::PolicyData::m_backoff_modifier_factories;
@@ -123,14 +137,14 @@ namespace RetryPP
 			return *this;
 		}
 
-		Policy build() const
+		const Policy build() const
 		{
 			if (!m_backoff_factory)
 				throw InvalidPolicy("Missing backoff strategy");
 			if (!m_limit_factory)
 				throw InvalidPolicy("Missing limit policy");
 
-			return { *reinterpret_cast<const Policy*>(this) };
+			return Policy{ *this };
 		}
 
 	private:
@@ -145,12 +159,14 @@ namespace RetryPP
 		}
 	};
 
+
 	template<class T>
 	struct RetryResult
 	{
 		T code;
 		Classification classification;
 	};
+
 
 	template<class T, class F, class... Args>
 	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
@@ -211,6 +227,7 @@ namespace RetryPP
 			std::this_thread::sleep_for(delay);
 		}
 	}
+
 
 	template<class TaskType, class T, class F, class... Args>
 	TaskType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
