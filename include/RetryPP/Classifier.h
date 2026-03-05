@@ -87,7 +87,7 @@ namespace RetryPP
 			using Code = Range::Code;
 
 		protected:
-			Classification m_undefined_code_classification = Classification::Transient;
+			Classification m_undefined_code_classification = Classification::Permanent;
 
 			std::set<Code, Comp> m_success_codes;
 			std::set<Code, Comp> m_transient_codes;
