@@ -35,7 +35,7 @@ namespace RetryPP
 			: m_maximum_retries{ maximum_retries }
 		{
 			if (m_maximum_retries == 0)
-				throw InvalidParameter("RetryLimit must be 1 or higher");
+				throw OutOfRange("RetryLimit must be 1 or higher");
 		}
 
 		size_t maximum_retries() const noexcept

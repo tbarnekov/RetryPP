@@ -37,7 +37,7 @@ namespace RetryPP
 			: m_timeout{ timeout }
 		{
 			if (m_timeout < std::chrono::milliseconds{ 0 })
-				throw InvalidParameter("TimeLimit must be positive");
+				throw OutOfRange("TimeLimit must be positive");
 		}
 
 		std::chrono::milliseconds timeout() const noexcept

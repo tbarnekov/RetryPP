@@ -35,7 +35,7 @@ namespace RetryPP
 			: m_initial_delay{ initial_delay }
 		{
 			if (m_initial_delay.count() <= 0)
-				throw InvalidParameter("Initial delay must be > 0");
+				throw OutOfRange("Initial delay must be > 0");
 		}
 
 		Strategy(const Strategy&) = delete;

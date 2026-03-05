@@ -37,7 +37,7 @@ namespace RetryPP
 			: Strategy{ initial_delay }, m_multiplier{ multiplier }
 		{
 			if (m_multiplier < 1.0f)
-				throw InvalidParameter("Exponential multiplier value must be >= 1");
+				throw OutOfRange("Exponential multiplier value must be >= 1");
 		}
 
 		float scaling() const noexcept

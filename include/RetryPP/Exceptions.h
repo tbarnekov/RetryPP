@@ -28,26 +28,26 @@ SOFTWARE.
 namespace RetryPP
 {
 
-	class InvalidPolicy : public std::runtime_error
+	class InvalidPolicy : public std::invalid_argument
 	{
 	public:
-		InvalidPolicy() noexcept : std::runtime_error{ "Invalid policy" } {}
-		InvalidPolicy(const char* message) : std::runtime_error{ std::format("Invalid policy: {}", message).c_str() } {}
+		InvalidPolicy() : std::invalid_argument{ "Invalid policy" } {}
+		InvalidPolicy(const char* message) : std::invalid_argument{ std::format("Invalid policy: {}", message).c_str() } {}
 	};
 
 
-	class InvalidClassifier : public std::runtime_error
+	class InvalidClassifier : public std::invalid_argument
 	{
 	public:
-		InvalidClassifier() noexcept : std::runtime_error{ "Invalid classifier" } {}
-		InvalidClassifier(const char* message) : std::runtime_error{ std::format("Invalid classifier: {}", message).c_str() } {}
+		InvalidClassifier() : std::invalid_argument{ "Invalid classifier" } {}
+		InvalidClassifier(const char* message) : std::invalid_argument{ std::format("Invalid classifier: {}", message).c_str() } {}
 	};
 
 
-	class InvalidParameter : public std::runtime_error
+	class OutOfRange : public std::out_of_range
 	{
 	public:
-		using std::runtime_error::runtime_error;
+		using std::out_of_range::out_of_range;
 	};
 
 } // namespace RetryPP
