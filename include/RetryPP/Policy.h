@@ -200,11 +200,11 @@ namespace RetryPP
 				classification = classifier.classify(std::get<T>(result));
 
 				// If code is a success code, return it
-				if (classification == Classification::Success)
+				if (classification.value() == Classification::Success)
 					return { std::get<T>(result), classification.value() };
 
 				// If code is a permanent error, return it
-				if (classification == Classification::Permanent)
+				if (classification.value() == Classification::Permanent)
 					return { std::get<T>(result), classification.value() };
 
 				// Otherwise it must be a transient code...
@@ -282,11 +282,11 @@ namespace RetryPP
 				classification = classifier.classify(std::get<T>(result));
 
 				// If code is a success code, return it
-				if (classification == Classification::Success)
+				if (classification.value() == Classification::Success)
 					co_return { std::get<T>(result), classification.value() };
 
 				// If code is a permanent error, return it
-				if (classification == Classification::Permanent)
+				if (classification.value() == Classification::Permanent)
 					co_return { std::get<T>(result), classification.value() };
 
 				// Otherwise it must be a transient code...
@@ -340,7 +340,7 @@ namespace RetryPP
 	TaskType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
 	{
 		std::stop_source token_source;
-		return withAsyncRetry<TaskType, T, F, Args...>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
+		co_return co_await withAsyncRetry<TaskType, T, F, Args...>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
 	}
 
 } // namespace RetryPP

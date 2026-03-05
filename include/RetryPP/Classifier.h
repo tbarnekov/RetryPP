@@ -203,6 +203,7 @@ namespace RetryPP
 
 		struct InRange
 		{
+			InRange(const Code& code) noexcept : m_code{ code } {}
 			constexpr bool operator()(const Range& range) const noexcept
 			{
 				return range.in_range(m_code);
@@ -213,6 +214,8 @@ namespace RetryPP
 
 		struct Equals
 		{
+			Equals(const Code& code) noexcept : m_code{ code } {}
+
 			constexpr bool operator()(const Code& code) const noexcept
 			{
 				Comp comp;
