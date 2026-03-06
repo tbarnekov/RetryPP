@@ -40,13 +40,19 @@ namespace RetryPP
 		Limit& operator=(Limit&&) = delete;
 
 		virtual bool exhausted() noexcept = 0;
-		virtual std::chrono::milliseconds time_remaining() const noexcept
-		{
-			return std::chrono::milliseconds::max();
-		}
+		virtual std::chrono::milliseconds time_remaining() const noexcept;
 	};
 
 	template<class T>
 	concept RetryLimitPolicy = std::derived_from<T,RetryPP::Limit>;
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// Limit implementation
+
+std::chrono::milliseconds RetryPP::Limit::time_remaining() const noexcept
+{
+	return std::chrono::milliseconds::max();
+}

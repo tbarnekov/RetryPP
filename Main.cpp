@@ -9,6 +9,7 @@
 #include "include/RetryPP/Limit/TimeLimit.h"
 #include <chrono>
 #include <format>
+#include <thread>
 #include <iostream>
 
 using HttpResponseCode = int;
@@ -87,11 +88,17 @@ public:
 
 	constexpr int getValue() const noexcept { return value; }
 
+	bool operator<(const CustomResult& other) const
+	{
+		return value < other.value;
+	}
+
 private:
 	int value = 0;
 };
 
 // std::less specialization for CustomResult
+/*
 template<>
 struct std::less<CustomResult>
 {
@@ -109,6 +116,7 @@ struct CustomResultComparator
 		return a.getValue() < b.getValue();
 	}
 };
+*/
 
 template<class T>
 void printResult(const T& code, RetryPP::Classification classification)
@@ -134,7 +142,7 @@ int main()
 		.withLimit<RetryLimit>(5)
 		.build();
 
-	auto customClassifier = ClassifierBuilder<CustomResult, CustomResultComparator>()
+	auto customClassifier = ClassifierBuilder<CustomResult>()
 		.withSuccessRange({ 299 }, { 200 })
 		.withTransientCodes({ { 251 }, { 252 } })
 		.withUndefinedCodeClassification(RetryPP::Classification::Permanent)

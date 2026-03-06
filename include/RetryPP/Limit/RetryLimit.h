@@ -31,22 +31,11 @@ namespace RetryPP
 	{
 	public:
 		RetryLimit() = delete;
-		explicit RetryLimit(size_t maximum_retries)
-			: m_maximum_retries{ maximum_retries }
-		{
-			if (m_maximum_retries == 0)
-				throw OutOfRange("RetryLimit must be 1 or higher");
-		}
+		explicit RetryLimit(size_t maximum_retries);
 
-		size_t maximum_retries() const noexcept
-		{
-			return m_maximum_retries;
-		}
+		size_t maximum_retries() const noexcept;
 
-		bool exhausted() noexcept override
-		{
-			return ++m_attempt >= m_maximum_retries;
-		}
+		bool exhausted() noexcept override;
 
 	private:
 		const size_t m_maximum_retries;
@@ -54,3 +43,24 @@ namespace RetryPP
 	};
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// RetryLimit implementation
+
+RetryPP::RetryLimit::RetryLimit(size_t maximum_retries)
+	: m_maximum_retries{ maximum_retries }
+{
+	if (m_maximum_retries == 0)
+		throw OutOfRange("RetryLimit must be 1 or higher");
+}
+
+size_t RetryPP::RetryLimit::maximum_retries() const noexcept
+{
+	return m_maximum_retries;
+}
+
+bool RetryPP::RetryLimit::exhausted() noexcept
+{
+	return ++m_attempt >= m_maximum_retries;
+}

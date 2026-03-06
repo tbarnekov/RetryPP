@@ -34,22 +34,11 @@ namespace RetryPP
 	public:
 		using Strategy::Strategy;
 
-		explicit Exponential(std::chrono::milliseconds initial_delay, float multiplier)
-			: Strategy{ initial_delay }, m_multiplier{ multiplier }
-		{
-			if (m_multiplier < 1.0f)
-				throw OutOfRange("Exponential multiplier value must be >= 1");
-		}
+		explicit Exponential(std::chrono::milliseconds initial_delay, float multiplier);
 
-		float scaling() const noexcept
-		{
-			return m_multiplier;
-		}
+		float scaling() const noexcept;
 
-		std::chrono::milliseconds next() noexcept override
-		{
-			return std::chrono::milliseconds{ initial_delay().count() * static_cast<long long>(std::pow(m_multiplier, static_cast<float>(m_attempt++))) };
-		}
+		std::chrono::milliseconds next() noexcept override;
 
 	private:
 		const float m_multiplier = 2.0f;
@@ -57,3 +46,24 @@ namespace RetryPP
 	};
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// Exponential implementation
+
+RetryPP::Exponential::Exponential(std::chrono::milliseconds initial_delay, float multiplier)
+	: Strategy{ initial_delay }, m_multiplier{ multiplier }
+{
+	if (m_multiplier < 1.0f)
+		throw OutOfRange("Exponential multiplier value must be >= 1");
+}
+
+float RetryPP::Exponential::scaling() const noexcept
+{
+	return m_multiplier;
+}
+
+std::chrono::milliseconds RetryPP::Exponential::next() noexcept
+{
+	return std::chrono::milliseconds{ initial_delay().count() * static_cast<long long>(std::pow(m_multiplier, static_cast<float>(m_attempt++))) };
+}

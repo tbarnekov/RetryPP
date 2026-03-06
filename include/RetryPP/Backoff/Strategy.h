@@ -60,3 +60,19 @@ namespace RetryPP
 	concept RetryStrategy = std::derived_from<T, RetryPP::Strategy>;
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// Strategy implementation
+
+RetryPP::Strategy::Strategy(std::chrono::milliseconds initial_delay)
+	: m_initial_delay{ initial_delay }
+{
+	if (m_initial_delay.count() <= 0)
+		throw OutOfRange("Initial delay must be > 0");
+}
+
+std::chrono::milliseconds RetryPP::Strategy::initial_delay() const noexcept
+{
+	return m_initial_delay;
+}

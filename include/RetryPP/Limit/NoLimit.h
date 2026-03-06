@@ -32,10 +32,16 @@ namespace RetryPP
 	public:
 		using Limit::Limit;
 
-		bool exhausted() noexcept override
-		{
-			return false;
-		}
+		bool exhausted() noexcept override;
 	};
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// NoLimit implementation
+
+bool RetryPP::NoLimit::exhausted() noexcept
+{
+	return false;
+}

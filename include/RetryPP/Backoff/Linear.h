@@ -33,13 +33,19 @@ namespace RetryPP
 	public:
 		using Strategy::Strategy;
 
-		std::chrono::milliseconds next() noexcept override
-		{
-			return std::chrono::milliseconds{ initial_delay().count() * m_attempt++ };
-		}
+		std::chrono::milliseconds next() noexcept override;
 
 	private:
 		size_t m_attempt = 1;
 	};
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// Linear implementation
+
+std::chrono::milliseconds RetryPP::Linear::next() noexcept
+{
+	return std::chrono::milliseconds{ initial_delay().count() * m_attempt++ };
+}

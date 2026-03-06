@@ -33,7 +33,6 @@ SOFTWARE.
 #include <memory>
 #include <optional>
 #include <stop_token>
-#include <thread>
 #include <variant>
 
 namespace RetryPP
@@ -68,40 +67,19 @@ namespace RetryPP
 		Policy& operator=(Policy&&) noexcept = default;
 		~Policy() = default;
 
-		static Policy null() noexcept
-		{
-			return {};
-		}
+		static Policy null() noexcept;
+		bool valid() const noexcept;
 
-		bool valid() const noexcept
-		{
-			return m_backoff_factory && m_limit_factory;
-		}
-
-		std::unique_ptr<Strategy> createBackoffStrategy() const
-		{
-			return m_backoff_factory();
-		}
-
-		std::unique_ptr<Limit> createLimitPolicy() const
-		{
-			return m_limit_factory();
-		}
-
-		std::vector<std::unique_ptr<Modifier>> createBackoffModifiers() const
-		{
-			std::vector<std::unique_ptr<Modifier>> modifiers;
-			for (const auto& modifier_factory : m_backoff_modifier_factories)
-				modifiers.emplace_back(modifier_factory());
-			return modifiers;
-		}
+		std::unique_ptr<Strategy> createBackoffStrategy() const;
+		std::unique_ptr<Limit> createLimitPolicy() const;
+		std::vector<std::unique_ptr<Modifier>> createBackoffModifiers() const;
 
 	private:
 		friend class PolicyBuilder;
 
 		Policy() noexcept = default;
-		explicit Policy(const internal::PolicyData& data) noexcept : internal::PolicyData{ data } {}
-		explicit Policy(internal::PolicyData&& data) noexcept : internal::PolicyData{ std::move(data) } {}
+		explicit Policy(const internal::PolicyData& data) noexcept;
+		explicit Policy(internal::PolicyData&& data) noexcept;
 
 		using internal::PolicyData::m_backoff_factory;
 		using internal::PolicyData::m_backoff_modifier_factories;
@@ -119,44 +97,20 @@ namespace RetryPP
 		PolicyBuilder& operator=(PolicyBuilder&&) noexcept = default;
 		~PolicyBuilder() noexcept = default;
 
-		explicit PolicyBuilder(const Policy& policy) noexcept : internal::PolicyData{ policy } {}
+		explicit PolicyBuilder(const Policy& policy) noexcept;
 
 		template<RetryStrategy T, class... Args>
-		PolicyBuilder& withStrategy(Args&&... args)
-		{
-			m_backoff_factory = createFactory<T>(std::forward<Args>(args)...);
-			return *this;
-		}
-
+		PolicyBuilder& withStrategy(Args&&... args);
+		
 		template<RetryBackoffModifier T, class... Args>
-		PolicyBuilder& withModifier(Args&&... args)
-		{
-			m_backoff_modifier_factories.emplace_back(createFactory<T>(std::forward<Args>(args)...));
-			return *this;
-		}
+		PolicyBuilder& withModifier(Args&&... args);
 
 		template<RetryLimitPolicy T, class... Args>
-		PolicyBuilder& withLimit(Args&&... args)
-		{
-			m_limit_factory = createFactory<T>(std::forward<Args>(args)...);
-			return *this;
-		}
+		PolicyBuilder& withLimit(Args&&... args);
 
-		PolicyBuilder& resetModifiers() noexcept
-		{
-			m_backoff_modifier_factories.clear();
-			return *this;
-		}
+		PolicyBuilder& resetModifiers() noexcept;
 
-		const Policy build() const
-		{
-			if (!m_backoff_factory)
-				throw InvalidPolicy("Missing backoff strategy");
-			if (!m_limit_factory)
-				throw InvalidPolicy("Missing limit policy");
-
-			return Policy{ *this };
-		}
+		const Policy build() const;
 
 	private:
 		using internal::PolicyData::m_backoff_factory;
@@ -164,183 +118,311 @@ namespace RetryPP
 		using internal::PolicyData::m_limit_factory;
 
 		template<class T, class... Args>
-		constexpr static inline Factory<T> createFactory(Args&&... args)
-		{
-			return [=] { return std::make_unique<T>(args...); };
-		}
+		constexpr static inline Factory<T> createFactory(Args&&... args);
 	};
 
 
 	template<class T>
 	struct RetryResult
 	{
-		T code;
+		RetryResult(Classification classification, const T& result) noexcept;
+
+		RetryResult(const RetryResult&) noexcept = default;
+		RetryResult(RetryResult&&) noexcept = default;
+		RetryResult& operator=(const RetryResult&) noexcept = default;
+		RetryResult& operator=(RetryResult&&) noexcept = default;
+		~RetryResult() = default;
+
 		Classification classification;
+		T code;
 	};
 
 
 	template<class T, class F, class... Args>
-	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args)
-	{
-		if (!policy.valid())
-			throw InvalidPolicy();
-
-		auto backoff = policy.createBackoffStrategy();
-		auto backoff_modifiers = policy.createBackoffModifiers();
-		auto limiter = policy.createLimitPolicy();
-
-		while (true)
-		{
-			std::variant<T, std::exception_ptr> result;
-			std::optional<Classification> classification;
-			try
-			{
-				result = f(std::forward<Args>(args)...);
-
-				classification = classifier.classify(std::get<T>(result));
-
-				// If code is a success code, return it
-				if (classification.value() == Classification::Success)
-					return { std::get<T>(result), classification.value() };
-
-				// If code is a permanent error, return it
-				if (classification.value() == Classification::Permanent)
-					return { std::get<T>(result), classification.value() };
-
-				// Otherwise it must be a transient code...
-
-				// If retries were exhausted, return the code
-				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					return { std::get<T>(result), classification.value() };
-			}
-			catch (...)
-			{
-				// If the exception is classified as a permanent error, just rethrow it
-				if (classifier.classify(std::current_exception()) == Classification::Permanent)
-					throw;
-
-				// If retries were exhausted, rethrow the exception
-				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					throw;
-
-				result = std::current_exception();
-			}
-
-			auto delay = backoff->next();
-			for (const auto& modifier : backoff_modifiers)
-				modifier->apply(delay);
-
-			// Clamp delay to either calculated delay or time remaining on the limiter
-			delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
-
-			// Notify caller that we're retrying
-			classifier.onRetry(result, delay);
-
-			std::mutex mutex;
-			std::condition_variable_any condvar;
-
-			std::unique_lock lock(mutex);
-			if (condvar.wait_for(lock, stop_token, delay, [&] { return stop_token.stop_requested(); }))
-			{
-				// If stop is requested rethrow latest exception (if present)
-				if (std::holds_alternative<std::exception_ptr>(result))
-					std::rethrow_exception(std::get<std::exception_ptr>(result));
-
-				// Otherwise return latest result
-				if (std::holds_alternative<T>(result))
-					return { std::get<T>(result), classification.value() };
-			}
-		}
-	}
-
+	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args);
 
 	template<class T, class F, class... Args>
-	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
-	{
-		std::stop_source token_source;
-		return withRetry<T, F, Args...>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
-	}
+	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args);
 
 	template<class TaskType, class T, class F, class... Args>
-	TaskType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args)
-	{
-		if (!policy.valid())
-			throw InvalidPolicy();
-
-		auto backoff = policy.createBackoffStrategy();
-		auto backoff_modifiers = policy.createBackoffModifiers();
-		auto limiter = policy.createLimitPolicy();
-
-		while (true)
-		{
-			std::variant<T, std::exception_ptr> result;
-			std::optional<Classification> classification;
-			try
-			{
-				result = co_await f(std::forward<Args>(args)...);
-
-				classification = classifier.classify(std::get<T>(result));
-
-				// If code is a success code, return it
-				if (classification.value() == Classification::Success)
-					co_return { std::get<T>(result), classification.value() };
-
-				// If code is a permanent error, return it
-				if (classification.value() == Classification::Permanent)
-					co_return { std::get<T>(result), classification.value() };
-
-				// Otherwise it must be a transient code...
-
-				// If retries were exhausted, return the code
-				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					co_return { std::get<T>(result), classification.value() };
-			}
-			catch (...)
-			{
-				// If the exception is classified as a permanent error, just rethrow it
-				if (classifier.classify(std::current_exception()) == Classification::Permanent)
-					throw;
-
-				// If retries were exhausted, rethrow the exception
-				if (limiter->exhausted() || limiter->time_remaining().count() == 0)
-					throw;
-
-				result = std::current_exception();
-			}
-
-			auto delay = backoff->next();
-			for (const auto& modifier : backoff_modifiers)
-				modifier->apply(delay);
-
-			// Clamp delay to either calculated delay or time remaining on the limiter
-			delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
-
-			// Notify caller that we're retrying
-			classifier.onRetry(result, delay);
-
-			std::mutex mutex;
-			std::condition_variable_any condvar;
-
-			std::unique_lock lock(mutex);
-			if (condvar.wait_for(lock, stop_token, delay, [&] { return stop_token.stop_requested(); }))
-			{
-				// If stop is requested rethrow latest exception (if present)
-				if (std::holds_alternative<std::exception_ptr>(result))
-					std::rethrow_exception(std::get<std::exception_ptr>(result));
-
-				// Otherwise return latest result
-				if (std::holds_alternative<T>(result))
-					co_return { std::get<T>(result), classification.value() };
-			}
-		}
-	}
-
+	TaskType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args);
 
 	template<class TaskType, class T, class F, class... Args>
-	TaskType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
-	{
-		std::stop_source token_source;
-		co_return co_await withAsyncRetry<TaskType, T, F, Args...>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
-	}
+	TaskType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args);
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// RetryResult implementation
+
+template<class T>
+RetryPP::RetryResult<T>::RetryResult(Classification classification, const T& code) noexcept
+	: classification{ classification }, code{ code }
+{
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Policy implementation
+
+RetryPP::Policy::Policy(const internal::PolicyData& data) noexcept
+	: internal::PolicyData{ data }
+{
+}
+
+RetryPP::Policy::Policy(internal::PolicyData&& data) noexcept
+	: internal::PolicyData{ std::move(data) }
+{
+}
+
+RetryPP::Policy RetryPP::Policy::null() noexcept
+{
+	return {};
+}
+
+bool RetryPP::Policy::valid() const noexcept
+{
+	return m_backoff_factory && m_limit_factory;
+}
+
+std::unique_ptr<RetryPP::Strategy> RetryPP::Policy::createBackoffStrategy() const
+{
+	return m_backoff_factory();
+}
+
+std::unique_ptr<RetryPP::Limit> RetryPP::Policy::createLimitPolicy() const
+{
+	return m_limit_factory();
+}
+
+std::vector<std::unique_ptr<RetryPP::Modifier>> RetryPP::Policy::createBackoffModifiers() const
+{
+	std::vector<std::unique_ptr<RetryPP::Modifier>> modifiers;
+	for (const auto& modifier_factory : m_backoff_modifier_factories)
+		modifiers.emplace_back(modifier_factory());
+	return modifiers;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// PolicyBuilder implementation
+
+RetryPP::PolicyBuilder::PolicyBuilder(const Policy& policy) noexcept
+	: RetryPP::internal::PolicyData{ policy }
+{
+}
+
+template<RetryPP::RetryStrategy T, class... Args>
+RetryPP::PolicyBuilder& RetryPP::PolicyBuilder::withStrategy(Args&&... args)
+{
+	m_backoff_factory = createFactory<T>(std::forward<Args>(args)...);
+	return *this;
+}
+
+template<RetryPP::RetryBackoffModifier T, class... Args>
+RetryPP::PolicyBuilder& RetryPP::PolicyBuilder::withModifier(Args&&... args)
+{
+	m_backoff_modifier_factories.emplace_back(createFactory<T>(std::forward<Args>(args)...));
+	return *this;
+}
+
+template<RetryPP::RetryLimitPolicy T, class... Args>
+RetryPP::PolicyBuilder& RetryPP::PolicyBuilder::withLimit(Args&&... args)
+{
+	m_limit_factory = createFactory<T>(std::forward<Args>(args)...);
+	return *this;
+}
+
+RetryPP::PolicyBuilder& RetryPP::PolicyBuilder::resetModifiers() noexcept
+{
+	m_backoff_modifier_factories.clear();
+	return *this;
+}
+
+const RetryPP::Policy RetryPP::PolicyBuilder::build() const
+{
+	if (!m_backoff_factory)
+		throw InvalidPolicy("Missing backoff strategy");
+	if (!m_limit_factory)
+		throw InvalidPolicy("Missing limit policy");
+
+	return Policy{ *this };
+}
+
+template<class T, class... Args>
+constexpr inline RetryPP::PolicyBuilder::Factory<T> RetryPP::PolicyBuilder::createFactory(Args&&... args)
+{
+	return [=] { return std::make_unique<T>(args...); };
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// withRetry implementation
+
+template<class T, class F, class... Args>
+RetryPP::RetryResult<T> RetryPP::withRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args)
+{
+	if (!policy.valid())
+		throw InvalidPolicy();
+
+	auto backoff = policy.createBackoffStrategy();
+	auto backoff_modifiers = policy.createBackoffModifiers();
+	auto limiter = policy.createLimitPolicy();
+
+	while (true)
+	{
+		std::variant<T, std::exception_ptr> result;
+		std::optional<Classification> classification;
+		try
+		{
+			result = f(std::forward<Args>(args)...);
+
+			classification = classifier.classify(std::get<T>(result));
+
+			// If code is a success code, return it
+			if (classification.value() == Classification::Success)
+				return { classification.value(), std::get<T>(result) };
+
+			// If code is a permanent error, return it
+			if (classification.value() == Classification::Permanent)
+				return { classification.value(), std::get<T>(result) };
+
+			// Otherwise it must be a transient code...
+
+			// If retries were exhausted, return the code
+			if (limiter->exhausted() || limiter->time_remaining().count() == 0)
+				return { classification.value(), std::get<T>(result) };
+		}
+		catch (...)
+		{
+			// If the exception is classified as a permanent error, just rethrow it
+			if (classifier.classify(std::current_exception()) == Classification::Permanent)
+				throw;
+
+			// If retries were exhausted, rethrow the exception
+			if (limiter->exhausted() || limiter->time_remaining().count() == 0)
+				throw;
+
+			result = std::current_exception();
+		}
+
+		auto delay = backoff->next();
+		for (const auto& modifier : backoff_modifiers)
+			modifier->apply(delay);
+
+		// Clamp delay to either calculated delay or time remaining on the limiter
+		delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
+
+		// Notify caller that we're retrying
+		classifier.onRetry(result, delay);
+
+		std::mutex mutex;
+		std::condition_variable_any condvar;
+
+		std::unique_lock lock(mutex);
+		if (condvar.wait_for(lock, stop_token, delay, [&] { return stop_token.stop_requested(); }))
+		{
+			// If stop is requested rethrow latest exception (if present)
+			if (std::holds_alternative<std::exception_ptr>(result))
+				std::rethrow_exception(std::get<std::exception_ptr>(result));
+
+			// Otherwise return latest result
+			if (std::holds_alternative<T>(result))
+				return { classification.value(), std::get<T>(result) };
+		}
+	}
+}
+
+template<class T, class F, class... Args>
+RetryPP::RetryResult<T> RetryPP::withRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
+{
+	std::stop_source token_source;
+	return withRetry(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// withAsyncRetry implementation
+
+template<class TaskType, class T, class F, class... Args>
+TaskType RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args)
+{
+	if (!policy.valid())
+		throw InvalidPolicy();
+
+	auto backoff = policy.createBackoffStrategy();
+	auto backoff_modifiers = policy.createBackoffModifiers();
+	auto limiter = policy.createLimitPolicy();
+
+	while (true)
+	{
+		std::variant<T, std::exception_ptr> result;
+		std::optional<Classification> classification;
+		try
+		{
+			result = co_await f(std::forward<Args>(args)...);
+
+			classification = classifier.classify(std::get<T>(result));
+
+			// If code is a success code, return it
+			if (classification.value() == Classification::Success)
+				co_return { classification.value(), std::get<T>(result) };
+
+			// If code is a permanent error, return it
+			if (classification.value() == Classification::Permanent)
+				co_return { classification.value(), std::get<T>(result) };
+
+			// Otherwise it must be a transient code...
+
+			// If retries were exhausted, return the code
+			if (limiter->exhausted() || limiter->time_remaining().count() == 0)
+				co_return { classification.value(), std::get<T>(result) };
+		}
+		catch (...)
+		{
+			// If the exception is classified as a permanent error, just rethrow it
+			if (classifier.classify(std::current_exception()) == Classification::Permanent)
+				throw;
+
+			// If retries were exhausted, rethrow the exception
+			if (limiter->exhausted() || limiter->time_remaining().count() == 0)
+				throw;
+
+			result = std::current_exception();
+		}
+
+		auto delay = backoff->next();
+		for (const auto& modifier : backoff_modifiers)
+			modifier->apply(delay);
+
+		// Clamp delay to either calculated delay or time remaining on the limiter
+		delay = std::chrono::milliseconds{ std::min(limiter->time_remaining().count(), delay.count()) };
+
+		// Notify caller that we're retrying
+		classifier.onRetry(result, delay);
+
+		std::mutex mutex;
+		std::condition_variable_any condvar;
+
+		std::unique_lock lock(mutex);
+		if (condvar.wait_for(lock, stop_token, delay, [&] { return stop_token.stop_requested(); }))
+		{
+			// If stop is requested rethrow latest exception (if present)
+			if (std::holds_alternative<std::exception_ptr>(result))
+				std::rethrow_exception(std::get<std::exception_ptr>(result));
+
+			// Otherwise return latest result
+			if (std::holds_alternative<T>(result))
+				co_return { classification.value(), std::get<T>(result) };
+		}
+	}
+}
+
+
+template<class TaskResultType, class T, class F, class... Args>
+TaskResultType RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
+{
+	std::stop_source token_source;
+	co_return co_await withAsyncRetry(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
+}

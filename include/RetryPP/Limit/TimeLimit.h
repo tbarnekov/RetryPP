@@ -62,3 +62,29 @@ namespace RetryPP
 	};
 	
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// TimeLimit implementation
+
+RetryPP::TimeLimit::TimeLimit(std::chrono::milliseconds timeout)
+	: m_timeout{ timeout }
+{
+	if (m_timeout < std::chrono::milliseconds{ 0 })
+		throw OutOfRange("TimeLimit must be positive");
+}
+
+std::chrono::milliseconds RetryPP::TimeLimit::timeout() const noexcept
+{
+	return m_timeout;
+}
+
+bool RetryPP::TimeLimit::exhausted() noexcept
+{
+	return std::chrono::steady_clock::now() > m_start + m_timeout;
+}
+
+std::chrono::milliseconds RetryPP::TimeLimit::time_remaining() const noexcept
+{
+	return std::chrono::milliseconds{ std::max(static_cast<std::chrono::steady_clock::rep>(0), ((m_start + m_timeout) - std::chrono::steady_clock::now()).count()) };
+}

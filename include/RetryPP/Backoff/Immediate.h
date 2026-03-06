@@ -30,10 +30,16 @@ namespace RetryPP
 	class Immediate : public Strategy
 	{
 	public:
-		std::chrono::milliseconds next() noexcept override
-		{
-			return std::chrono::milliseconds{ 0 };
-		}
+		std::chrono::milliseconds next() noexcept override;
 	};
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// Immediate implementation
+
+std::chrono::milliseconds RetryPP::Immediate::next() noexcept
+{
+	return std::chrono::milliseconds{ 0 };
+}

@@ -32,10 +32,16 @@ namespace RetryPP
 	public:
 		using Strategy::Strategy;
 
-		std::chrono::milliseconds next() noexcept override
-		{
-			return initial_delay();
-		}
+		std::chrono::milliseconds next() noexcept override;
 	};
 
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Fixed implementation
+
+std::chrono::milliseconds RetryPP::Fixed::next() noexcept
+{
+	return initial_delay();
 }

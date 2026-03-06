@@ -31,16 +31,16 @@ namespace RetryPP
 	class InvalidPolicy : public std::invalid_argument
 	{
 	public:
-		InvalidPolicy() : std::invalid_argument{ "Invalid policy" } {}
-		InvalidPolicy(const char* message) : std::invalid_argument{ std::format("Invalid policy: {}", message).c_str() } {}
+		InvalidPolicy();
+		InvalidPolicy(const char* message);
 	};
 
 
 	class InvalidClassifier : public std::invalid_argument
 	{
 	public:
-		InvalidClassifier() : std::invalid_argument{ "Invalid classifier" } {}
-		InvalidClassifier(const char* message) : std::invalid_argument{ std::format("Invalid classifier: {}", message).c_str() } {}
+		InvalidClassifier();
+		InvalidClassifier(const char* message);
 	};
 
 
@@ -51,3 +51,31 @@ namespace RetryPP
 	};
 
 } // namespace RetryPP
+
+
+//////////////////////////////////////////////////////////////////////////
+// InvalidPolicy implementation
+
+RetryPP::InvalidPolicy::InvalidPolicy()
+	: std::invalid_argument{ "Invalid policy" }
+{
+}
+
+RetryPP::InvalidPolicy::InvalidPolicy(const char* message)
+	: std::invalid_argument{ std::format("Invalid policy: {}", message).c_str() }
+{
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// InvalidClassifier implementation
+
+RetryPP::InvalidClassifier::InvalidClassifier()
+	: std::invalid_argument{ "Invalid classifier" }
+{
+}
+
+RetryPP::InvalidClassifier::InvalidClassifier(const char* message)
+	: std::invalid_argument{ std::format("Invalid classifier: {}", message).c_str() }
+{
+}
