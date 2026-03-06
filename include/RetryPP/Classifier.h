@@ -167,8 +167,6 @@ namespace RetryPP
 
 		Classification classify(const Code& code) const
 		{
-			Classification classification = m_undefined_code_classification;
-
 			// Check if code indicates success
 			if (isSuccessCode(code))
 				return Classification::Success;

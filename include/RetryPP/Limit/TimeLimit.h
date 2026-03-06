@@ -23,6 +23,7 @@ SOFTWARE.
 */
 #pragma once
 #include "Limit.h"
+#include <algorithm>
 #include <chrono>
 
 
@@ -52,7 +53,7 @@ namespace RetryPP
 
 		std::chrono::milliseconds time_remaining() const noexcept override
 		{
-			return std::chrono::milliseconds{ std::max(0ll, ((m_start + m_timeout) - std::chrono::steady_clock::now()).count()) };
+			return std::chrono::milliseconds{ std::max(static_cast<std::chrono::steady_clock::rep>(0), ((m_start + m_timeout) - std::chrono::steady_clock::now()).count()) };
 		}
 
 	private:

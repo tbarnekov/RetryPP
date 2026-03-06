@@ -24,6 +24,7 @@ SOFTWARE.
 #pragma once
 #include "Strategy.h"
 #include <chrono>
+#include <cmath>
 
 namespace RetryPP
 {

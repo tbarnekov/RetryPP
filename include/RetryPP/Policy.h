@@ -92,7 +92,7 @@ namespace RetryPP
 		{
 			std::vector<std::unique_ptr<Modifier>> modifiers;
 			for (const auto& modifier_factory : m_backoff_modifier_factories)
-				modifiers.emplace_back(std::move(modifier_factory()));
+				modifiers.emplace_back(modifier_factory());
 			return modifiers;
 		}
 
@@ -131,7 +131,7 @@ namespace RetryPP
 		template<RetryBackoffModifier T, class... Args>
 		PolicyBuilder& withModifier(Args&&... args)
 		{
-			m_backoff_modifier_factories.emplace_back(std::move(createFactory<T>(std::forward<Args>(args)...)));
+			m_backoff_modifier_factories.emplace_back(createFactory<T>(std::forward<Args>(args)...));
 			return *this;
 		}
 

@@ -71,11 +71,11 @@
     <ClInclude Include="include\RetryPP\Classifier.h">
       <Filter>Header Files\RetryPP</Filter>
     </ClInclude>
-    <ClInclude Include="include\RetryPP\Policy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\RetryPP\Exceptions.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\RetryPP</Filter>
+    </ClInclude>
+    <ClInclude Include="include\RetryPP\Policy.h">
+      <Filter>Header Files\RetryPP</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
