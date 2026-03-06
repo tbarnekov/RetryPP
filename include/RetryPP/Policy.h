@@ -345,8 +345,8 @@ RetryPP::RetryResult<T> RetryPP::withRetry(const Policy& policy, const Classifie
 //////////////////////////////////////////////////////////////////////////
 // withAsyncRetry implementation
 
-template<class TaskType, class T, class F, class... Args>
-TaskType RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args)
+template<class TaskResultType, class T, class F, class... Args>
+TaskResultType RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args)
 {
 	if (!policy.valid())
 		throw InvalidPolicy();
@@ -424,5 +424,5 @@ template<class TaskResultType, class T, class F, class... Args>
 TaskResultType RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
 {
 	std::stop_source token_source;
-	co_return co_await withAsyncRetry(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
+	co_return co_await withAsyncRetry<TaskResultType, T, F, Args...>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
 }
