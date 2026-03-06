@@ -34,27 +34,12 @@ namespace RetryPP
 	{
 	public:
 		TimeLimit() = delete;
-		explicit TimeLimit(std::chrono::milliseconds timeout)
-			: m_timeout{ timeout }
-		{
-			if (m_timeout < std::chrono::milliseconds{ 0 })
-				throw OutOfRange("TimeLimit must be positive");
-		}
+		explicit TimeLimit(std::chrono::milliseconds timeout);
 
-		std::chrono::milliseconds timeout() const noexcept
-		{
-			return m_timeout;
-		}
+		std::chrono::milliseconds timeout() const noexcept;
 
-		bool exhausted() noexcept override
-		{
-			return std::chrono::steady_clock::now() > m_start + m_timeout;
-		}
-
-		std::chrono::milliseconds time_remaining() const noexcept override
-		{
-			return std::chrono::milliseconds{ std::max(static_cast<std::chrono::steady_clock::rep>(0), ((m_start + m_timeout) - std::chrono::steady_clock::now()).count()) };
-		}
+		bool exhausted() noexcept override;
+		std::chrono::milliseconds time_remaining() const noexcept override;
 
 	private:
 		const std::chrono::steady_clock::time_point m_start = std::chrono::steady_clock::now();
