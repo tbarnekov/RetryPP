@@ -209,7 +209,7 @@ int main()
 		std::stop_source token_source;
 		Policy policy2 = PolicyBuilder(policy)
 			.withStrategy<Linear>(3s)
-			.resetModifiers()
+			.clearModifiers()
 			.build();
 
 		std::jthread t([&] {

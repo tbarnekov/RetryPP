@@ -349,7 +349,302 @@ was classified as transient.
         ...
     }
 
-    RetryResult<HttpResponseCode> result = co_await withAsyncRetry<task<RetryResult<HttpResponseCode>>>(policy, classifier, &asyncOperation);
+    RetryResult<HttpResponseCode> result = co_await withAsyncRetry(policy, classifier, &asyncOperation);
+```
+
+
+# Classes
+
+
+## RetryResult
+
+```cpp
+namespace RetryPP
+{
+    template<class Code>
+    struct RetryResult
+    {
+        RetryResult(Classification classification, const Code& result) noexcept;
+
+        RetryResult(const RetryResult&) noexcept = default;
+        RetryResult(RetryResult&&) noexcept = default;
+        RetryResult& operator=(const RetryResult&) noexcept = default;
+        RetryResult& operator=(RetryResult&&) noexcept = default;
+        ~RetryResult() = default;
+
+        Classification classification;
+        Code code;
+    };
+}
+```
+
+
+## Range
+```cpp
+namespace RetryPP
+{
+    template<class T, class Comp = std::less<T>>
+    class Range
+    {
+    public:
+        using Code = std::decay_t<T>;
+
+        // Construct a Range with the specified start and end code (both inclusive).
+        constexpr explicit Range(const Code& start, const Code& end) noexcept;
+
+        constexpr Range(const Range&) noexcept = default;
+        constexpr Range(Range&&) noexcept = default;
+        constexpr Range& operator=(const Range&) noexcept = default;
+        constexpr Range& operator=(Range&&) noexcept = default;
+        ~Range() noexcept = default;
+
+        // Return the start of the range.
+        constexpr const Code& start() const noexcept;
+
+        // Return the end of the range.
+        constexpr const Code& end() const noexcept;
+
+        // Returns true if specified code falls within the range.
+        constexpr bool in_range(const Code& code) const noexcept;
+    };
+}
+```
+
+
+## Classification
+
+```cpp
+namespace RetryPP
+{
+    enum class Classification
+    {
+        Success,    // Indicates a successful reponse
+        Transient,  // Indicates a transient (retryable) failure
+        Permanent,  // Indicates a permanent (non-retyable) failure
+    };
+}
+```
+
+
+## PolicyBuilder
+
+```cpp
+namespace RetryPP
+{
+    class PolicyBuilder final
+    {
+    public:
+        PolicyBuilder() noexcept = default;
+        PolicyBuilder(const PolicyBuilder&) noexcept = default;
+        PolicyBuilder(PolicyBuilder&&) noexcept = default;
+        PolicyBuilder& operator=(const PolicyBuilder&) noexcept = default;
+        PolicyBuilder& operator=(PolicyBuilder&&) noexcept = default;
+        ~PolicyBuilder() noexcept = default;
+
+        // Create a new PolicyBuilder with the settings of an existing Policy.
+        explicit PolicyBuilder(const Policy& policy) noexcept;
+
+        // Set the retry backoff strategy for the policy.
+        template<RetryStrategy T, class... Args>
+        PolicyBuilder& withStrategy(Args&&... args);
+
+        // Add a Modifier to the policy.
+        template<RetryBackoffModifier T, class... Args>
+        PolicyBuilder& withModifier(Args&&... args);
+
+        // Set the retry limit for the policy.
+        template<RetryLimitPolicy T, class... Args>
+        PolicyBuilder& withLimit(Args&&... args);
+
+        // Clear the current list of modifiers.
+        PolicyBuilder& clearModifiers() noexcept;
+
+        // Build a new policy with the settings from the builder.
+        // throws an InvalidPolicy exception if required options are missing.
+        const Policy build() const;
+    };
+}
+```
+
+## ClassifierBuilder
+
+```cpp
+namespace RetryPP
+{
+    template<class Code, class Comp = std::less<T>>
+    class ClassifierBuilder final
+    {
+    public:
+        using Range = internal::ClassifierData<Code, Comp>::Range;
+
+        ClassifierBuilder() noexcept = default;
+        ClassifierBuilder(const ClassifierBuilder&) noexcept = default;
+        ClassifierBuilder(ClassifierBuilder&&) noexcept = default;
+        ClassifierBuilder& operator=(const ClassifierBuilder&) noexcept = default;
+        ClassifierBuilder& operator=(ClassifierBuilder&&) noexcept = default;
+        ~ClassifierBuilder() noexcept = default;
+
+        // Create a new ClassifierBuilder with the settings of an existing classifier.
+        explicit ClassifierBuilder(const Classifier<T, Comp>& classifier) noexcept;
+
+        // Set codes and ranges indicating a successful operation.
+        ClassifierBuilder& withSuccessCode(const Code& code);
+        ClassifierBuilder& withSuccessCodes(const std::set<Code, Comp>& codes);
+        ClassifierBuilder& withSuccessRange(const Code& start, const Code& end);
+
+        // Set codes and ranges indicating a transient failure during operation.
+        ClassifierBuilder& withTransientCode(const Code& code);
+        ClassifierBuilder& withTransientCodes(const std::set<Code, Comp>& codes);
+        ClassifierBuilder& withTransientRange(const Code& start, const Code& end);
+
+        // Set codes and ranges indicating a permanent failure during operation.
+        ClassifierBuilder& withPermanentCode(const Code& code);
+        ClassifierBuilder& withPermanentCodes(const std::set<Code, Comp>& codes);
+        ClassifierBuilder& withPermanentRange(const Code& start, const Code& end);
+
+        // Set the classification for codes not defined as either successful, transient or permanent.
+        ClassifierBuilder& withUndefinedCodeClassification(Classification classification) noexcept;
+
+        // Set the callback for classifying exceptions.
+        ClassifierBuilder& withExceptionClassifier(const std::function<Classification(std::exception_ptr)>& f);
+
+        // Set the callback to be called before retrying an operation. The callback is called before sleeping.
+        ClassifierBuilder& withRetryCallback(const std::function<void(const std::variant<Code, std::exception_ptr>&, std::chrono::milliseconds)>& f);
+
+        // Build a classifier with the settings of the builder.
+        const Classifier<Code, Comp> build() const;
+    };
+}
+```
+
+
+## Policy
+
+```cpp
+namespace RetryPP
+{
+    class Policy final : public internal::PolicyData
+    {
+    public:
+        Policy(const Policy&) noexcept = default;
+        Policy(Policy&&) noexcept = default;
+        Policy& operator=(const Policy&) noexcept = default;
+        Policy& operator=(Policy&&) noexcept = default;
+        ~Policy() = default;
+
+        // Returns an invalid policy.
+        static Policy null() noexcept;
+
+        // Returns true if policy is valid.
+        bool valid() const noexcept;
+
+        // Creates an instance of the policy's backoff strategy.
+        std::unique_ptr<Strategy> createBackoffStrategy() const;
+
+        // Creates an instance of the policy's limit policy.
+        std::unique_ptr<Limit> createLimitPolicy() const;
+
+        // Creates an std::list of the policy's modifiers.
+        std::vector<std::unique_ptr<Modifier>> createBackoffModifiers() const;
+    };
+}
+```
+
+
+## Classifier
+
+```cpp
+namespace RetryPP
+{
+    template<class Code, class Comp = std::less<T>>
+    class Classifier final
+    {
+    public:
+        Classifier(const Classifier&) noexcept = default;
+        Classifier(Classifier&&) noexcept = default;
+        Classifier& operator=(const Classifier&) noexcept = default;
+        Classifier& operator=(Classifier&&) noexcept = default;
+        ~Classifier() = default;
+
+        // Create an invalid classifier.
+        static Classifier null();
+
+        // Returns true if classifier is valid.
+        bool valid() const;
+
+        // Returns success codes and ranges.
+        const std::span<const Code> successCodes() const noexcept;
+        const std::span<const Range> successRanges() const noexcept;
+
+        // Returns transient codes and ranges.
+        const std::span<const Code> transientCodes() const noexcept;
+        const std::span<const Range> transientRanges() const noexcept;
+
+        // Returns permanent codes and ranges.
+        const std::span<const Code> permanentCodes() const noexcept;
+        const std::span<const Range> permanentRanges() const noexcept;
+
+        // Returns the exception classifier callback.
+        const std::function<Classification(std::exception_ptr)> exceptionClassifier() const noexcept;
+
+        // Functions to test a specified code
+        bool isSuccessCode(const Code& code) const;
+        bool isTransientCode(const Code& code) const;
+        bool isPermanentCode(const Code& code) const;
+
+        // Returns the classification of the supplied code.
+        Classification classify(const Code& code) const;
+
+        // Returns the classification of the supplied exception.
+        Classification classify(std::exception_ptr e) const;
+
+        // Calls the retry callback with the specified parameters.
+        void onRetry(const std::variant<Code, std::exception_ptr>& result, std::chrono::milliseconds sleep) const;
+    };
+}
+```
+
+# Function
+
+## withRetry
+
+```cpp
+namespace RetryPP
+{
+    // Perform synchronous retry based on the supplied policy and classifier on the operation F&& f with (optional) arguments Args&&... args.
+    // The stop_token allows aborting the retry sleep and returning immediately.
+    template<class Code, class F, class... Args>
+    RetryResult<Code> withRetry(const Policy& policy, const Classifier<Code>& classifier, std::stop_token stop_token, F&& f, Args&&... args);
+
+    // Same as above except with no stop_token.
+    template<class Code, class F, class... Args>
+    RetryResult<Code> withRetry(const Policy& policy, const Classifier<Code>& classifier, F&& f, Args&&... args);
+}
+```
+
+
+## withAsyncRetry
+
+```cpp
+namespace RetryPP
+{
+    // Perform asynchronous retry based on the supplied policy and classifier on the async operation F&& f with (optional) arguments Args&&... args.
+    // The stop_token allows aborting the retry sleep and returning immediately.
+    // The type of the resulting task is specified in the TaskResultType template parameter, other template parameters are auto-deduced if possible.
+    template<class TaskResultType, class T, class F, class... Args>
+    TaskResultType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args);
+
+    // Same as above except with no stop_token.
+    template<class TaskResultType, class T, class F, class... Args>
+    TaskResultType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args);
+
+    // Template specializations of the above functions allowing auto-deducing the returned task type. Will work for task types with a single template parameter.
+    template<class T, class F, class... Args>
+    auto withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args) -> typename internal::wrapped_task<decltype(internal::function_return_type(f))>::type;
+
+    template<class T, class F, class... Args>
+    auto withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args) -> typename internal::wrapped_task<decltype(internal::function_return_type(f))>::type;
+}
 ```
 
 

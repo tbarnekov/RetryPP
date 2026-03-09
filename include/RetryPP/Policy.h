@@ -139,7 +139,7 @@ namespace RetryPP
 		template<RetryLimitPolicy T, class... Args>
 		PolicyBuilder& withLimit(Args&&... args);
 
-		PolicyBuilder& resetModifiers() noexcept;
+		PolicyBuilder& clearModifiers() noexcept;
 
 		const Policy build() const;
 
@@ -263,7 +263,7 @@ RetryPP::PolicyBuilder& RetryPP::PolicyBuilder::withLimit(Args&&... args)
 	return *this;
 }
 
-RetryPP::PolicyBuilder& RetryPP::PolicyBuilder::resetModifiers() noexcept
+RetryPP::PolicyBuilder& RetryPP::PolicyBuilder::clearModifiers() noexcept
 {
 	m_backoff_modifier_factories.clear();
 	return *this;
