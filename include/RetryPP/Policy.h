@@ -37,6 +37,21 @@ SOFTWARE.
 
 namespace RetryPP
 {
+	template<class T>
+	struct RetryResult
+	{
+		RetryResult(Classification classification, const T& result) noexcept;
+
+		RetryResult(const RetryResult&) noexcept = default;
+		RetryResult(RetryResult&&) noexcept = default;
+		RetryResult& operator=(const RetryResult&) noexcept = default;
+		RetryResult& operator=(RetryResult&&) noexcept = default;
+		~RetryResult() = default;
+
+		Classification classification;
+		T code;
+	};
+
 
 	namespace internal
 	{
@@ -51,6 +66,22 @@ namespace RetryPP
 			std::vector<Factory<Modifier>> m_backoff_modifier_factories;
 			Factory<Limit> m_limit_factory;
 		};
+
+		template<class T>
+		struct wrapped_task;
+
+		template<template<class> class Task, class T>
+		struct wrapped_task<Task<T>>
+		{
+			using type = Task<RetryResult<T>>;
+		};
+
+		template<typename R, typename... Args>
+		static R function_return_type(R(*)(Args...));
+
+		template<typename R, typename... Args>
+		static R function_return_type(R(*)(Args..., ...));
+
 
 	} // namespace internal
 
@@ -122,31 +153,12 @@ namespace RetryPP
 	};
 
 
-	template<class T>
-	struct RetryResult
-	{
-		RetryResult(Classification classification, const T& result) noexcept;
-
-		RetryResult(const RetryResult&) noexcept = default;
-		RetryResult(RetryResult&&) noexcept = default;
-		RetryResult& operator=(const RetryResult&) noexcept = default;
-		RetryResult& operator=(RetryResult&&) noexcept = default;
-		~RetryResult() = default;
-
-		Classification classification;
-		T code;
-	};
-
-
 	template<class T, class F, class... Args>
 	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args);
 
 	template<class T, class F, class... Args>
 	RetryResult<T> withRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args);
 
-
-	template<typename T>
-	struct TaskTraits {};
 
 	template<class TaskResultType, class T, class F, class... Args>
 	TaskResultType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args);
@@ -155,10 +167,17 @@ namespace RetryPP
 	TaskResultType withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args);
 
 	template<class T, class F, class... Args>
-	TaskTraits<T>::Type withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args);
+	auto withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args) -> typename internal::wrapped_task<decltype(internal::function_return_type(f))>::type
+	{
+		co_return co_await withAsyncRetry<typename internal::wrapped_task<decltype(internal::function_return_type(f))>::type>(policy, classifier, stop_token, std::forward<F>(f), std::forward<Args>(args)...);
+	}
 
 	template<class T, class F, class... Args>
-	TaskTraits<T>::Type withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args);
+	auto withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args) -> typename internal::wrapped_task<decltype(internal::function_return_type(f))>::type
+	{
+		std::stop_source token_source;
+		co_return co_await withAsyncRetry<typename internal::wrapped_task<decltype(internal::function_return_type(f))>::type>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
+	}
 
 } // namespace RetryPP
 
@@ -434,17 +453,4 @@ TaskResultType RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>
 {
 	std::stop_source token_source;
 	co_return co_await withAsyncRetry<TaskResultType>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
-}
-
-template<class T, class F, class... Args>
-RetryPP::TaskTraits<T>::Type RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, std::stop_token stop_token, F&& f, Args&&... args)
-{
-	co_return co_await withAsyncRetry<typename TaskTraits<T>::Type>(policy, classifier, stop_token, std::forward<F>(f), std::forward<Args>(args)...);
-}
-
-template<class T, class F, class... Args>
-RetryPP::TaskTraits<T>::Type RetryPP::withAsyncRetry(const Policy& policy, const Classifier<T>& classifier, F&& f, Args&&... args)
-{
-	std::stop_source token_source;
-	co_return co_await withAsyncRetry<typename TaskTraits<T>::Type>(policy, classifier, token_source.get_token(), std::forward<F>(f), std::forward<Args>(args)...);
 }
