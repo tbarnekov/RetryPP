@@ -431,7 +431,7 @@ namespace RetryPP
 ```cpp
 namespace RetryPP
 {
-    class PolicyBuilder final
+    class PolicyBuilder final : public internal::PolicyData
     {
     public:
         PolicyBuilder() noexcept = default;
@@ -471,11 +471,12 @@ namespace RetryPP
 ```cpp
 namespace RetryPP
 {
-    template<class Code, class Comp = std::less<T>>
-    class ClassifierBuilder final
+    template<class T, class Comp = std::less<T>>
+    class ClassifierBuilder final : public internal::ClassifierData<T, Comp>
     {
     public:
-        using Range = internal::ClassifierData<Code, Comp>::Range;
+        using Code = internal::ClassifierData<T, Comp>::Code;
+        using Range = internal::ClassifierData<T, Comp>::Range;
 
         ClassifierBuilder() noexcept = default;
         ClassifierBuilder(const ClassifierBuilder&) noexcept = default;
@@ -556,10 +557,12 @@ namespace RetryPP
 ```cpp
 namespace RetryPP
 {
-    template<class Code, class Comp = std::less<T>>
-    class Classifier final
+    template<class T, class Comp = std::less<T>>
+    class Classifier final : public internal::ClassifierData<T, Comp>
     {
     public:
+        using Code = internal::ClassifierData<T, Comp>::Code;
+
         Classifier(const Classifier&) noexcept = default;
         Classifier(Classifier&&) noexcept = default;
         Classifier& operator=(const Classifier&) noexcept = default;
@@ -604,7 +607,7 @@ namespace RetryPP
 }
 ```
 
-# Function
+# Functions
 
 ## withRetry
 
