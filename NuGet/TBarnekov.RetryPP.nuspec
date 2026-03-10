@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+    <metadata>
+        <id>TBarnekov.RetryPP</id>
+        <version>0.0.0</version>
+        <description>Header-only C++ 20 retry implementation</description>
+        <authors>Thomas Barnekov</authors>
+        <projectUrl>https://github.com/tbarnekov/RetryPP</projectUrl>
+        <license type="expression">MIT</license>
+        <readme>build\docs\README.md</readme>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <copyright>Copyright (c) 2026 Thomas Barnekov</copyright>
+        <tags>Retry C++ C++20 Headeronly Native</tags>
+        <repository type="git" url="https://github.com/tbarnekov/RetryPP.git" branch="main" />
+        <title>RetryPP - A C++20 header-only retry library</title>
+    </metadata>
+    <files>
+        <file src="TBarnekov.RetryPP.props" target="build\" />
+        <file src="..\include\**\*.*" target="build\native\RetryPP\" />
+        <file src="..\README.md" target="build\docs\" />
+    </files>
+</package>
