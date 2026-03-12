@@ -33,7 +33,7 @@ namespace RetryPP
 	public:
 		using Strategy::Strategy;
 
-		std::chrono::milliseconds next() noexcept override;
+		inline std::chrono::milliseconds next() noexcept override;
 
 	private:
 		size_t m_attempt = 1;

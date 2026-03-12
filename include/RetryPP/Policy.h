@@ -40,7 +40,7 @@ namespace RetryPP
 	template<class T>
 	struct RetryResult
 	{
-		RetryResult(Classification classification, const T& result) noexcept;
+		inline RetryResult(Classification classification, const T& result) noexcept;
 
 		RetryResult(const RetryResult&) noexcept = default;
 		RetryResult(RetryResult&&) noexcept = default;
@@ -82,7 +82,6 @@ namespace RetryPP
 		template<typename R, typename... Args>
 		static R function_return_type(R(*)(Args..., ...));
 
-
 	} // namespace internal
 
 
@@ -98,19 +97,19 @@ namespace RetryPP
 		Policy& operator=(Policy&&) noexcept = default;
 		~Policy() = default;
 
-		static Policy null() noexcept;
-		bool valid() const noexcept;
+		inline static Policy null() noexcept;
+		inline bool valid() const noexcept;
 
-		std::unique_ptr<Strategy> createBackoffStrategy() const;
-		std::unique_ptr<Limit> createLimitPolicy() const;
-		std::vector<std::unique_ptr<Modifier>> createBackoffModifiers() const;
+		inline std::unique_ptr<Strategy> createBackoffStrategy() const;
+		inline std::unique_ptr<Limit> createLimitPolicy() const;
+		inline std::vector<std::unique_ptr<Modifier>> createBackoffModifiers() const;
 
 	private:
 		friend class PolicyBuilder;
 
-		Policy() noexcept = default;
-		explicit Policy(const internal::PolicyData& data) noexcept;
-		explicit Policy(internal::PolicyData&& data) noexcept;
+		inline Policy() noexcept = default;
+		inline explicit Policy(const internal::PolicyData& data) noexcept;
+		inline explicit Policy(internal::PolicyData&& data) noexcept;
 
 		using internal::PolicyData::m_backoff_factory;
 		using internal::PolicyData::m_backoff_modifier_factories;
@@ -128,7 +127,7 @@ namespace RetryPP
 		PolicyBuilder& operator=(PolicyBuilder&&) noexcept = default;
 		~PolicyBuilder() noexcept = default;
 
-		explicit PolicyBuilder(const Policy& policy) noexcept;
+		inline explicit PolicyBuilder(const Policy& policy) noexcept;
 
 		template<RetryStrategy T, class... Args>
 		PolicyBuilder& withStrategy(Args&&... args);
@@ -139,9 +138,9 @@ namespace RetryPP
 		template<RetryLimitPolicy T, class... Args>
 		PolicyBuilder& withLimit(Args&&... args);
 
-		PolicyBuilder& clearModifiers() noexcept;
+		inline PolicyBuilder& clearModifiers() noexcept;
 
-		const Policy build() const;
+		inline const Policy build() const;
 
 	private:
 		using internal::PolicyData::m_backoff_factory;

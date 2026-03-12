@@ -23,8 +23,10 @@ SOFTWARE.
 */
 #pragma once
 #include "Strategy.h"
+#include "../Exceptions.h"
 #include <chrono>
 #include <cmath>
+
 
 namespace RetryPP
 {
@@ -34,11 +36,11 @@ namespace RetryPP
 	public:
 		using Strategy::Strategy;
 
-		explicit Exponential(std::chrono::milliseconds initial_delay, float multiplier);
+		inline explicit Exponential(std::chrono::milliseconds initial_delay, float multiplier);
 
-		float scaling() const noexcept;
+		inline float multiplier() const noexcept;
 
-		std::chrono::milliseconds next() noexcept override;
+		inline std::chrono::milliseconds next() noexcept override;
 
 	private:
 		const float m_multiplier = 2.0f;
@@ -58,12 +60,13 @@ RetryPP::Exponential::Exponential(std::chrono::milliseconds initial_delay, float
 		throw OutOfRange("Exponential multiplier value must be >= 1");
 }
 
-float RetryPP::Exponential::scaling() const noexcept
+float RetryPP::Exponential::multiplier() const noexcept
 {
 	return m_multiplier;
 }
 
 std::chrono::milliseconds RetryPP::Exponential::next() noexcept
 {
-	return std::chrono::milliseconds{ initial_delay().count() * static_cast<long long>(std::pow(m_multiplier, static_cast<float>(m_attempt++))) };
+	auto exponent = std::pow(m_multiplier, static_cast<float>(m_attempt++));
+	return std::chrono::milliseconds{ static_cast<count_t>(static_cast<float>(initial_delay().count()) * exponent) };
 }

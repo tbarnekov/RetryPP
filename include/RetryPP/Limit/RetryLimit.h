@@ -23,6 +23,7 @@ SOFTWARE.
 */
 #pragma once
 #include "Limit.h"
+#include "../Exceptions.h"
 
 namespace RetryPP
 {
@@ -31,11 +32,11 @@ namespace RetryPP
 	{
 	public:
 		RetryLimit() = delete;
-		explicit RetryLimit(size_t maximum_retries);
+		inline explicit RetryLimit(size_t maximum_retries);
 
-		size_t maximum_retries() const noexcept;
+		inline size_t maximum_retries() const noexcept;
 
-		bool exhausted() noexcept override;
+		inline bool exhausted() noexcept override;
 
 	private:
 		const size_t m_maximum_retries;

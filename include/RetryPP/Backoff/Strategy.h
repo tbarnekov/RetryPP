@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #pragma once
+#include "../Exceptions.h"
 #include <chrono>
 #include <concepts>
 
@@ -31,7 +32,8 @@ namespace RetryPP
 	class Strategy
 	{
 	public:
-		explicit Strategy(std::chrono::milliseconds initial_delay);
+		Strategy() noexcept = default;
+		inline explicit Strategy(std::chrono::milliseconds initial_delay);
 
 		Strategy(const Strategy&) = delete;
 		Strategy(Strategy&&) = delete;
@@ -39,12 +41,15 @@ namespace RetryPP
 		Strategy& operator=(Strategy&&) = delete;
 		virtual ~Strategy() noexcept = default;
 
-		std::chrono::milliseconds initial_delay() const noexcept;
+		inline std::chrono::milliseconds initial_delay() const noexcept;
 
 		virtual std::chrono::milliseconds next() noexcept = 0;
 
+	protected:
+		using count_t = std::chrono::milliseconds::rep;
+
 	private:
-		const std::chrono::milliseconds m_initial_delay;
+		const std::chrono::milliseconds m_initial_delay{ 0 };
 	};
 
 
@@ -60,7 +65,7 @@ namespace RetryPP
 RetryPP::Strategy::Strategy(std::chrono::milliseconds initial_delay)
 	: m_initial_delay{ initial_delay }
 {
-	if (m_initial_delay.count() <= 0)
+	if (m_initial_delay.count() <= static_cast<count_t>(0))
 		throw OutOfRange("Initial delay must be > 0");
 }
 

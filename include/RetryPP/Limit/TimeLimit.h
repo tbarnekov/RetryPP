@@ -23,6 +23,7 @@ SOFTWARE.
 */
 #pragma once
 #include "Limit.h"
+#include "../Exceptions.h"
 #include <algorithm>
 #include <chrono>
 
@@ -34,12 +35,12 @@ namespace RetryPP
 	{
 	public:
 		TimeLimit() = delete;
-		explicit TimeLimit(std::chrono::milliseconds timeout);
+		inline explicit TimeLimit(std::chrono::milliseconds timeout);
 
-		std::chrono::milliseconds timeout() const noexcept;
+		inline std::chrono::milliseconds timeout() const noexcept;
 
-		bool exhausted() noexcept override;
-		std::chrono::milliseconds time_remaining() const noexcept override;
+		inline bool exhausted() noexcept override;
+		inline std::chrono::milliseconds time_remaining() const noexcept override;
 
 	private:
 		const std::chrono::steady_clock::time_point m_start = std::chrono::steady_clock::now();

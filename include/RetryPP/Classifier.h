@@ -27,10 +27,10 @@ SOFTWARE.
 #include <chrono>
 #include <exception>
 #include <functional>
-#include <variant>
 #include <span>
 #include <set>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 namespace RetryPP
@@ -42,7 +42,7 @@ namespace RetryPP
 	public:
 		using Code = std::decay_t<T>;
 
-		constexpr explicit Range(const Code& start, const Code& end) noexcept;
+		inline constexpr explicit Range(const Code& start, const Code& end) noexcept;
 
 		constexpr Range(const Range&) noexcept = default;
 		constexpr Range(Range&&) noexcept = default;

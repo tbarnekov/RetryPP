@@ -30,7 +30,7 @@ namespace RetryPP
 	class Immediate : public Strategy
 	{
 	public:
-		std::chrono::milliseconds next() noexcept override;
+		inline std::chrono::milliseconds next() noexcept override;
 	};
 
 } // namespace RetryPP

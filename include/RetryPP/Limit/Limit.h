@@ -40,7 +40,7 @@ namespace RetryPP
 		Limit& operator=(Limit&&) = delete;
 
 		virtual bool exhausted() noexcept = 0;
-		virtual std::chrono::milliseconds time_remaining() const noexcept;
+		inline virtual std::chrono::milliseconds time_remaining() const noexcept;
 	};
 
 	template<class T>

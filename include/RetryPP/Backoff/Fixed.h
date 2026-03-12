@@ -32,7 +32,7 @@ namespace RetryPP
 	public:
 		using Strategy::Strategy;
 
-		std::chrono::milliseconds next() noexcept override;
+		inline std::chrono::milliseconds next() noexcept override;
 	};
 
 }

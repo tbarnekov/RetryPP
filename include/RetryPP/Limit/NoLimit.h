@@ -32,7 +32,7 @@ namespace RetryPP
 	public:
 		using Limit::Limit;
 
-		bool exhausted() noexcept override;
+		inline bool exhausted() noexcept override;
 	};
 
 } // namespace RetryPP

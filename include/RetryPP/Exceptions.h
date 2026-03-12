@@ -31,16 +31,16 @@ namespace RetryPP
 	class InvalidPolicy : public std::invalid_argument
 	{
 	public:
-		InvalidPolicy();
-		InvalidPolicy(const char* message);
+		inline InvalidPolicy();
+		inline InvalidPolicy(const char* message);
 	};
 
 
 	class InvalidClassifier : public std::invalid_argument
 	{
 	public:
-		InvalidClassifier();
-		InvalidClassifier(const char* message);
+		inline InvalidClassifier();
+		inline InvalidClassifier(const char* message);
 	};
 
 
