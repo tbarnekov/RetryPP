@@ -32,7 +32,6 @@ namespace RetryPP
 	class Strategy
 	{
 	public:
-		Strategy() noexcept = default;
 		inline explicit Strategy(std::chrono::milliseconds initial_delay);
 
 		Strategy(const Strategy&) = delete;

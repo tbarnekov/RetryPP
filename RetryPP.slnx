@@ -3,5 +3,6 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="RetryPP.Tests.vcxproj" Id="04041bcd-0be0-961f-701b-030c45c991d9" />
   <Project Path="RetryPP.vcxproj" Id="71b91086-29a5-4e48-a394-72cde7950d5b" />
 </Solution>

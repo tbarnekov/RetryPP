@@ -1,5 +1,5 @@
 .vs
 *.user
-/RetryPP
-/Win32
-/x64
+/RetryPP*
+Win32
+x64

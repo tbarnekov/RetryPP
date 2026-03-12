@@ -27,11 +27,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="include\RetryPP\Backoff\Strategy.h">
       <Filter>Header Files\RetryPP\Backoff</Filter>
     </ClInclude>

@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Strategies">
+      <UniqueIdentifier>{b88f4cf0-4b03-46a6-ae95-fbedf02e453c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Strategies\Modifiers">
+      <UniqueIdentifier>{49d8dd22-6783-426c-883f-46f279e65d14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Limits">
+      <UniqueIdentifier>{3231f4c5-2ea6-401a-9d06-f6118fcd0c40}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Tests\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Exponential.Test.cpp">
+      <Filter>Source Files\Strategies</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Linear.Tests.cpp">
+      <Filter>Source Files\Strategies</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Fixed.Tests.cpp">
+      <Filter>Source Files\Strategies</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Immediate.Tests.cpp">
+      <Filter>Source Files\Strategies</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Cap.Tests.cpp">
+      <Filter>Source Files\Strategies\Modifiers</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Jitter.Tests.cpp">
+      <Filter>Source Files\Strategies\Modifiers</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\NoLimit.Tests.cpp">
+      <Filter>Source Files\Limits</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\RetryLimit.Tests.cpp">
+      <Filter>Source Files\Limits</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\TimeLimit.Tests.cpp">
+      <Filter>Source Files\Limits</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\PolicyBuilder.Tests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Policy.Tests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\ClassifierBuilder.Tests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\Classifier.Tests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\withRetry.Tests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Tests\pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

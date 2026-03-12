@@ -53,11 +53,11 @@ namespace RetryPP
 			void apply(std::chrono::milliseconds& delay) noexcept override
 			{
 				std::uniform_int_distribution<long long> distribution{ 0, delay.count() };
-				delay = std::chrono::milliseconds{ distribution(m_random_engine) };
+				delay = std::chrono::milliseconds{ distribution(m_random_device) };
 			}
 
 		private:
-			mutable std::mt19937 m_random_engine;
+			mutable std::random_device m_random_device;
 		};
 
 
@@ -67,11 +67,11 @@ namespace RetryPP
 			void apply(std::chrono::milliseconds& delay) noexcept override
 			{
 				std::uniform_int_distribution<long long> distribution{ 0, delay.count() / 2 };
-				delay = std::chrono::milliseconds{ (delay.count() / 2) + distribution(m_random_engine) };
+				delay = std::chrono::milliseconds{ (delay.count() / 2) + distribution(m_random_device) };
 			}
 
 		private:
-			mutable std::mt19937 m_random_engine;
+			mutable std::random_device m_random_device;
 		};
 
 
@@ -84,17 +84,17 @@ namespace RetryPP
 					m_initial_delay = delay.count();
 
 				if (!m_last_delay.has_value())
-					m_last_delay = std::uniform_int_distribution<long long>{ 0, delay.count() }(m_random_engine) * 3;
+					m_last_delay = std::uniform_int_distribution<long long>{ 0, delay.count() }(m_random_device) * 3;
 
 				std::uniform_int_distribution<long long> distribution{ std::min(m_initial_delay.value(), m_last_delay.value()), std::max(m_initial_delay.value(), m_last_delay.value()) };
-				delay = std::chrono::milliseconds{ distribution(m_random_engine) };
+				delay = std::chrono::milliseconds{ distribution(m_random_device) };
 				m_last_delay = delay.count() * 3;
 			}
 
 		private:
 			std::optional<long long> m_initial_delay;
 			std::optional<long long> m_last_delay;
-			mutable std::mt19937 m_random_engine;
+			mutable std::random_device m_random_device;
 		};
 
 	} // namespace Algorithm

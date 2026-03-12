@@ -56,8 +56,8 @@ namespace RetryPP
 		constexpr bool in_range(const Code& code) const noexcept;
 
 	private:
-		const Code m_start;
-		const Code m_end;
+		Code m_start;
+		Code m_end;
 	};
 
 
@@ -274,7 +274,7 @@ RetryPP::Classifier<T, Comp> RetryPP::Classifier<T, Comp>::null()
 template<class T, class Comp>
 bool RetryPP::Classifier<T, Comp>::valid() const
 {
-	return !m_success_codes.empty() && !m_success_ranges.empty();
+	return !(m_success_codes.empty() && m_success_ranges.empty());
 }
 
 template<class T, class Comp>
