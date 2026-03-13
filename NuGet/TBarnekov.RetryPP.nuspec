@@ -18,5 +18,6 @@
         <file src="TBarnekov.RetryPP.props" target="build\" />
         <file src="..\include\**\*.*" target="build\native\RetryPP\" />
         <file src="..\README.md" target="build\docs\" />
+        <file src="..\CHANGELOG.md" target="build\docs\" />
     </files>
 </package>
