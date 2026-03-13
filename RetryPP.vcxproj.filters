@@ -75,5 +75,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Readme.md" />
+    <None Include="CHANGELOG.md" />
   </ItemGroup>
 </Project>
