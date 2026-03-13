@@ -142,6 +142,7 @@
     <ClInclude Include="include\RetryPP\Limit\Limit.h" />
     <ClInclude Include="include\RetryPP\Limit\TimeLimit.h" />
     <ClInclude Include="include\RetryPP\Policy.h" />
+    <ClInclude Include="include\RetryPP\RetryPP.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.md" />

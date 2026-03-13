@@ -72,6 +72,9 @@
     <ClInclude Include="include\RetryPP\Policy.h">
       <Filter>Header Files\RetryPP</Filter>
     </ClInclude>
+    <ClInclude Include="include\RetryPP\RetryPP.h">
+      <Filter>Header Files\RetryPP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Readme.md" />

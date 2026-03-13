@@ -5,6 +5,7 @@
 ### New
 
 - Add unit tests
+- Add ```RetryPP.h``` that includes everything for convenience
 
 ### Bugfixes
 
