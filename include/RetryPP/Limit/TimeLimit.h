@@ -72,5 +72,5 @@ bool RetryPP::TimeLimit::exhausted() noexcept
 
 std::chrono::milliseconds RetryPP::TimeLimit::time_remaining() const noexcept
 {
-	return std::chrono::milliseconds{ std::max(static_cast<std::chrono::steady_clock::rep>(0), ((m_start + m_timeout) - std::chrono::steady_clock::now()).count()) };
+	return std::chrono::milliseconds{ std::max<count_t>(0, ((m_start + m_timeout) - std::chrono::steady_clock::now()).count()) };
 }

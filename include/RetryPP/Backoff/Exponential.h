@@ -67,6 +67,6 @@ float RetryPP::Exponential::multiplier() const noexcept
 
 std::chrono::milliseconds RetryPP::Exponential::next() noexcept
 {
-	auto exponent = std::pow(m_multiplier, static_cast<float>(m_attempt++));
+	const auto exponent = std::pow<float>(m_multiplier, m_attempt++);
 	return std::chrono::milliseconds{ static_cast<count_t>(static_cast<float>(initial_delay().count()) * exponent) };
 }

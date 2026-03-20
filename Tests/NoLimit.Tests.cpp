@@ -15,17 +15,16 @@ namespace Tests
 		public:
 			using count_t = std::chrono::milliseconds::rep;
 
-			TEST_METHOD(Construction)
+			TEST_METHOD(Construction) noexcept
 			{
-				auto limit = std::make_unique<NoLimit>();
-				Assert::IsNotNull(limit.get());
+				NoLimit limit;
 			}
 
 			TEST_METHOD(NoLimitProgress)
 			{
-				auto limit = std::make_unique<NoLimit>();
+				NoLimit limit;
 				for (size_t i = 0; i < 100; ++i)
-					Assert::AreEqual(false, limit->exhausted());
+					Assert::AreEqual(false, limit.exhausted());
 			}
 		};
 	}

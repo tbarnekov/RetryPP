@@ -107,14 +107,11 @@ namespace RetryPP
 		using Code = internal::ClassifierData<T, Comp>::Code;
 		using Range = internal::ClassifierData<T, Comp>::Range;
 
-		Classifier(const Classifier&) noexcept = default;
-		Classifier(Classifier&&) noexcept = default;
-		Classifier& operator=(const Classifier&) noexcept = default;
-		Classifier& operator=(Classifier&&) noexcept = default;
-		~Classifier() = default;
+		using internal::ClassifierData<T, Comp>::ClassifierData;
+		using internal::ClassifierData<T, Comp>::operator=;
 
-		static Classifier null();
-		bool valid() const;
+		static Classifier null() noexcept;
+		bool valid() const noexcept;
 
 		const std::span<const Code> successCodes() const noexcept;
 		const std::span<const Range> successRanges() const noexcept;
@@ -138,7 +135,7 @@ namespace RetryPP
 
 		struct InRange
 		{
-			InRange(const Code& code) noexcept;
+			explicit constexpr InRange(const Code& code) noexcept;
 			constexpr bool operator()(const Range& range) const noexcept;
 
 			const Code& m_code;
@@ -146,7 +143,7 @@ namespace RetryPP
 
 		struct Equals
 		{
-			Equals(const Code& code) noexcept;
+			explicit constexpr Equals(const Code& code) noexcept;
 			constexpr bool operator()(const Code& code) const noexcept;
 
 			const Code& m_code;
@@ -176,12 +173,8 @@ namespace RetryPP
 		using Code = internal::ClassifierData<T, Comp>::Code;
 		using Range = internal::ClassifierData<T, Comp>::Range;
 
-		ClassifierBuilder() noexcept = default;
-		ClassifierBuilder(const ClassifierBuilder&) noexcept = default;
-		ClassifierBuilder(ClassifierBuilder&&) noexcept = default;
-		ClassifierBuilder& operator=(const ClassifierBuilder&) noexcept = default;
-		ClassifierBuilder& operator=(ClassifierBuilder&&) noexcept = default;
-		~ClassifierBuilder() noexcept = default;
+		using internal::ClassifierData<T, Comp>::ClassifierData;
+		using internal::ClassifierData<T, Comp>::operator=;
 
 		explicit ClassifierBuilder(const Classifier<T, Comp>& classifier) noexcept;
 
@@ -244,7 +237,7 @@ constexpr const RetryPP::Range<T, Comp>::Code& RetryPP::Range<T, Comp>::end() co
 template<class T, class Comp>
 constexpr bool RetryPP::Range<T, Comp>::in_range(const Code& code) const noexcept
 {
-	Comp comp;
+	Comp comp{};
 	return !comp(code, m_start) && !comp(m_end, code); // Equivalent to code >= m_start && code <= m_end
 }
 
@@ -266,13 +259,13 @@ RetryPP::Classifier<T, Comp>::Classifier(RetryPP::internal::ClassifierData<T, Co
 }
 
 template<class T, class Comp>
-RetryPP::Classifier<T, Comp> RetryPP::Classifier<T, Comp>::null()
+RetryPP::Classifier<T, Comp> RetryPP::Classifier<T, Comp>::null() noexcept
 {
 	return {};
 }
 
 template<class T, class Comp>
-bool RetryPP::Classifier<T, Comp>::valid() const
+bool RetryPP::Classifier<T, Comp>::valid() const noexcept
 {
 	return !(m_success_codes.empty() && m_success_ranges.empty());
 }
@@ -387,7 +380,7 @@ void RetryPP::Classifier<T, Comp>::onRetry(const std::variant<Code, std::excepti
 }
 
 template<class T, class Comp>
-RetryPP::Classifier<T, Comp>::InRange::InRange(const Code& code) noexcept
+constexpr RetryPP::Classifier<T, Comp>::InRange::InRange(const Code& code) noexcept
 	: m_code{ code }
 {
 }
@@ -399,7 +392,7 @@ constexpr bool RetryPP::Classifier<T, Comp>::InRange::operator()(const Range& ra
 }
 
 template<class T, class Comp>
-RetryPP::Classifier<T, Comp>::Equals::Equals(const Code& code) noexcept
+constexpr RetryPP::Classifier<T, Comp>::Equals::Equals(const Code& code) noexcept
 	: m_code{ code }
 {
 }

@@ -33,12 +33,12 @@ namespace RetryPP
 	{
 	public:
 		inline explicit Strategy(std::chrono::milliseconds initial_delay);
+		virtual ~Strategy() noexcept = default;
 
 		Strategy(const Strategy&) = delete;
 		Strategy(Strategy&&) = delete;
 		Strategy& operator=(const Strategy&) = delete;
 		Strategy& operator=(Strategy&&) = delete;
-		virtual ~Strategy() noexcept = default;
 
 		inline std::chrono::milliseconds initial_delay() const noexcept;
 
@@ -64,8 +64,8 @@ namespace RetryPP
 RetryPP::Strategy::Strategy(std::chrono::milliseconds initial_delay)
 	: m_initial_delay{ initial_delay }
 {
-	if (m_initial_delay.count() <= static_cast<count_t>(0))
-		throw OutOfRange("Initial delay must be > 0");
+	if (m_initial_delay.count() < static_cast<count_t>(0))
+		throw OutOfRange("Initial delay must be >= 0");
 }
 
 std::chrono::milliseconds RetryPP::Strategy::initial_delay() const noexcept

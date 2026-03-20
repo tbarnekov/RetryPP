@@ -15,13 +15,13 @@ using namespace std::chrono_literals;
 struct CustomWithCompare
 {
 	int code = 0;
-	bool operator<(const CustomWithCompare& rhs) const { return code < rhs.code; }
+	bool operator<(const CustomWithCompare& rhs) const noexcept { return code < rhs.code; }
 };
 
 struct CustomerWithSpaceship
 {
 	int code = 0;
-	auto operator<=>(const CustomerWithSpaceship& rhs) const { return code <=> rhs.code; }
+	auto operator<=>(const CustomerWithSpaceship& rhs) const noexcept { return code <=> rhs.code; }
 };
 
 struct CustomWithoutCompare
@@ -47,13 +47,11 @@ namespace Tests
 		public:
 			using count_t = std::chrono::milliseconds::rep;
 
-			TEST_METHOD(Construction)
+			TEST_METHOD(Construction) noexcept
 			{
-				auto intBuilder = std::make_unique<ClassifierBuilder<int>>();
-				Assert::IsNotNull(intBuilder.get());
+				ClassifierBuilder<int> intBuilder;
 
-				auto boolBuilder = std::make_unique<ClassifierBuilder<bool>>();
-				Assert::IsNotNull(boolBuilder.get());
+				ClassifierBuilder<bool> boolBuilder;
 			}
 
 			TEST_METHOD(Copy)
@@ -342,12 +340,12 @@ namespace Tests
 				auto builder = ClassifierBuilder<int>()
 					.withSuccessCode(0)
 					.withTransientCode(1)
-					.withExceptionClassifier([](std::exception_ptr) { return Classification::Transient; })
+					.withExceptionClassifier([] (std::exception_ptr) noexcept { return Classification::Transient; })
 					.withRetryCallback(retryCallback);
 
 				auto classifier = builder.build();
 
-				auto result = withRetry(policy, classifier, [] { return 1; });
+				const auto result = withRetry(policy, classifier, [] { return 1; });
 				Assert::IsTrue(Classification::Transient == result.classification);
 				Assert::AreEqual(1, result.code);
 				Assert::AreEqual(2, retryCallbackCount);

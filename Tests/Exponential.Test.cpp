@@ -17,31 +17,29 @@ namespace Tests
 
 			TEST_METHOD(Construction)
 			{
-				auto strategy = std::make_unique<Exponential>(100ms);
-				Assert::IsNotNull(strategy.get());
-				Assert::AreEqual(static_cast<count_t>(100), strategy->initial_delay().count());
-				Assert::AreEqual(2.0f, strategy->multiplier());
+				Exponential strategy{ 100ms };
+				Assert::AreEqual<count_t>(100, strategy.initial_delay().count());
+				Assert::AreEqual<float>(2.0f, strategy.multiplier());
 
-				strategy = std::make_unique<Exponential>(120ms, 1.5f);
-				Assert::IsNotNull(strategy.get());
-				Assert::AreEqual(static_cast<count_t>(120), strategy->initial_delay().count());
-				Assert::AreEqual(1.5f, strategy->multiplier());
+				Exponential strategy2{ 120ms, 1.5f };
+				Assert::AreEqual<count_t>(120, strategy2.initial_delay().count());
+				Assert::AreEqual<float>(1.5f, strategy2.multiplier());
 			}
 
 			TEST_METHOD(Progress)
 			{
-				auto strategy = std::make_unique<Exponential>(200ms, 2.0f);
-				Assert::AreEqual(static_cast<count_t>(200), strategy->next().count());
-				Assert::AreEqual(static_cast<count_t>(400), strategy->next().count());
-				Assert::AreEqual(static_cast<count_t>(800), strategy->next().count());
+				Exponential strategy{ 200ms };
+				Assert::AreEqual<count_t>(200, strategy.next().count());
+				Assert::AreEqual<count_t>(400, strategy.next().count());
+				Assert::AreEqual<count_t>(800, strategy.next().count());
 			}
 
 			TEST_METHOD(ProgressWithMultiplier)
 			{
-				auto strategy = std::make_unique<Exponential>(100ms, 1.5f);
-				Assert::AreEqual(static_cast<count_t>(100), strategy->next().count());
-				Assert::AreEqual(static_cast<count_t>(150), strategy->next().count());
-				Assert::AreEqual(static_cast<count_t>(225), strategy->next().count());
+				Exponential strategy{ 100ms, 1.5f };
+				Assert::AreEqual<count_t>(100, strategy.next().count());
+				Assert::AreEqual<count_t>(150, strategy.next().count());
+				Assert::AreEqual<count_t>(225, strategy.next().count());
 			}
 		};
 	}

@@ -32,13 +32,17 @@ namespace RetryPP
 	{
 	public:
 		Modifier() noexcept = default;
+		virtual ~Modifier() noexcept = default;
+
 		Modifier(const Modifier&) = delete;
 		Modifier(Modifier&&) = delete;
 		Modifier& operator=(const Modifier&) = delete;
 		Modifier& operator=(Modifier&&) = delete;
-		virtual ~Modifier() noexcept = default;
 
-		virtual void apply(std::chrono::milliseconds& delay) noexcept = 0;
+		virtual void apply(std::chrono::milliseconds& delay) = 0;
+
+	protected:
+		using count_t = std::chrono::milliseconds::rep;
 	};
 
 

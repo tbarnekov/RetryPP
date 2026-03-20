@@ -43,16 +43,19 @@ namespace RetryPP
 			JitterAlgorithm& operator=(JitterAlgorithm&&) = delete;
 			virtual ~JitterAlgorithm() = default;
 
-			virtual void apply(std::chrono::milliseconds& delay) noexcept = 0;
+			virtual void apply(std::chrono::milliseconds& delay) = 0;
+
+		protected:
+			using count_t = std::chrono::milliseconds::rep;
 		};
 
 
 		class Full final : public JitterAlgorithm
 		{
 		public:
-			void apply(std::chrono::milliseconds& delay) noexcept override
+			void apply(std::chrono::milliseconds& delay) override
 			{
-				std::uniform_int_distribution<long long> distribution{ 0, delay.count() };
+				std::uniform_int_distribution<count_t> distribution{ 0, delay.count() };
 				delay = std::chrono::milliseconds{ distribution(m_random_device) };
 			}
 
@@ -64,9 +67,9 @@ namespace RetryPP
 		class Equal final : public JitterAlgorithm
 		{
 		public:
-			void apply(std::chrono::milliseconds& delay) noexcept override
+			void apply(std::chrono::milliseconds& delay) override
 			{
-				std::uniform_int_distribution<long long> distribution{ 0, delay.count() / 2 };
+				std::uniform_int_distribution<count_t> distribution{ 0, delay.count() / 2 };
 				delay = std::chrono::milliseconds{ (delay.count() / 2) + distribution(m_random_device) };
 			}
 
@@ -78,22 +81,22 @@ namespace RetryPP
 		class Decorrelated final : public JitterAlgorithm
 		{
 		public:
-			void apply(std::chrono::milliseconds& delay) noexcept override
+			void apply(std::chrono::milliseconds& delay) override
 			{
 				if (!m_initial_delay.has_value())
 					m_initial_delay = delay.count();
 
 				if (!m_last_delay.has_value())
-					m_last_delay = std::uniform_int_distribution<long long>{ 0, delay.count() }(m_random_device) * 3;
+					m_last_delay = std::uniform_int_distribution<count_t>{ 0, delay.count() }(m_random_device) * 3;
 
-				std::uniform_int_distribution<long long> distribution{ std::min(m_initial_delay.value(), m_last_delay.value()), std::max(m_initial_delay.value(), m_last_delay.value()) };
+				std::uniform_int_distribution<count_t> distribution{ std::min(m_initial_delay.value(), m_last_delay.value()), std::max(m_initial_delay.value(), m_last_delay.value()) };
 				delay = std::chrono::milliseconds{ distribution(m_random_device) };
 				m_last_delay = delay.count() * 3;
 			}
 
 		private:
-			std::optional<long long> m_initial_delay;
-			std::optional<long long> m_last_delay;
+			std::optional<count_t> m_initial_delay;
+			std::optional<count_t> m_last_delay;
 			mutable std::random_device m_random_device;
 		};
 
@@ -108,7 +111,7 @@ namespace RetryPP
 	class Jitter : public Modifier
 	{
 	public:
-		void apply(std::chrono::milliseconds& delay) noexcept override
+		void apply(std::chrono::milliseconds& delay) override
 		{
 			m_algorithm.apply(delay);
 		}

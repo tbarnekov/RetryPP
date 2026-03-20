@@ -17,17 +17,16 @@ namespace Tests
 
 			TEST_METHOD(Construction)
 			{
-				auto strategy = std::make_unique<Fixed>(100ms);
-				Assert::IsNotNull(strategy.get());
-				Assert::AreEqual(static_cast<count_t>(100), strategy->initial_delay().count());
+				Fixed strategy{ 100ms };
+				Assert::AreEqual<count_t>(100, strategy.initial_delay().count());
 			}
 
 			TEST_METHOD(FixedProgress)
 			{
-				auto strategy = std::make_unique<Fixed>(200ms);
-				Assert::AreEqual(static_cast<count_t>(200), strategy->next().count());
-				Assert::AreEqual(static_cast<count_t>(200), strategy->next().count());
-				Assert::AreEqual(static_cast<count_t>(200), strategy->next().count());
+				Fixed strategy{ 200ms };
+				Assert::AreEqual<count_t>(200, strategy.next().count());
+				Assert::AreEqual<count_t>(200, strategy.next().count());
+				Assert::AreEqual<count_t>(200, strategy.next().count());
 			}
 		};
 	}

@@ -29,6 +29,7 @@ SOFTWARE.
 #include "Limit/Limit.h"
 #include <chrono>
 #include <condition_variable>
+#include <coroutine>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -76,11 +77,69 @@ namespace RetryPP
 			using type = Task<RetryResult<T>>;
 		};
 
-		template<typename R, typename... Args>
+		template<class R, class... Args>
 		static R function_return_type(R(*)(Args...));
 
-		template<typename R, typename... Args>
+		template<class R, class... Args>
 		static R function_return_type(R(*)(Args..., ...));
+
+		template<class T>
+		struct is_coroutine_handle : std::false_type {};
+
+		template<class Promise>
+		struct is_coroutine_handle<std::coroutine_handle<Promise>> : std::true_type {};
+
+		// NOTE: We're accepting a return value of coroutine_handle<P> here
+		// which is an extension supported by Clang which is not yet part of
+		// the C++ coroutines TS.
+		template<class T>
+		struct is_valid_await_suspend_return_value : std::disjunction<
+			std::is_void<T>,
+			std::is_same<T, bool>,
+			is_coroutine_handle<T>>
+		{};
+
+		template<class T, class = std::void_t<>>
+		struct is_awaiter : std::false_type {};
+
+		// NOTE: We're testing whether await_suspend() will be callable using an
+		// arbitrary coroutine_handle here by checking if it supports being passed
+		// a coroutine_handle<void>. This may result in a false-result for some
+		// types which are only awaitable within a certain context.
+		template<class T>
+		struct is_awaiter<T, std::void_t<
+			decltype(std::declval<T>().await_ready()),
+			decltype(std::declval<T>().await_suspend(std::declval<std::coroutine_handle<>>())),
+			decltype(std::declval<T>().await_resume())>> :
+			std::conjunction<
+				std::is_constructible<bool, decltype(std::declval<T>().await_ready())>,
+				is_valid_await_suspend_return_value<
+					decltype(std::declval<T>().await_suspend(std::declval<std::coroutine_handle<>>()))>>
+		{
+		};
+
+		template<class T>
+		auto get_awaiter_impl(T&& value, int)
+			noexcept(noexcept(static_cast<T&&>(value).operator co_await()))
+			-> decltype(static_cast<T&&>(value).operator co_await())
+		{
+			return static_cast<T&&>(value).operator co_await();
+		}
+
+		template<class T>
+		auto get_awaiter_impl(T&& value, long)
+			noexcept(noexcept(operator co_await(static_cast<T&&>(value))))
+			-> decltype(operator co_await(static_cast<T&&>(value)))
+		{
+			return operator co_await(static_cast<T&&>(value));
+		}
+
+		template<class T,
+			std::enable_if_t<is_awaiter<T&&>::value, int> = 0>
+		T&& get_awaiter_impl(T&& value)
+		{
+			return get_awaiter_impl(static_cast<T&&>(value), 123);
+		}
 
 	} // namespace internal
 
@@ -91,11 +150,8 @@ namespace RetryPP
 	class Policy final : public internal::PolicyData
 	{
 	public:
-		Policy(const Policy&) noexcept = default;
-		Policy(Policy&&) noexcept = default;
-		Policy& operator=(const Policy&) noexcept = default;
-		Policy& operator=(Policy&&) noexcept = default;
-		~Policy() = default;
+		using internal::PolicyData::PolicyData;
+		using internal::PolicyData::operator=;
 
 		inline static Policy null() noexcept;
 		inline bool valid() const noexcept;
@@ -120,12 +176,8 @@ namespace RetryPP
 	class PolicyBuilder final : public internal::PolicyData
 	{
 	public:
-		PolicyBuilder() noexcept = default;
-		PolicyBuilder(const PolicyBuilder&) noexcept = default;
-		PolicyBuilder(PolicyBuilder&&) noexcept = default;
-		PolicyBuilder& operator=(const PolicyBuilder&) noexcept = default;
-		PolicyBuilder& operator=(PolicyBuilder&&) noexcept = default;
-		~PolicyBuilder() noexcept = default;
+		using internal::PolicyData::PolicyData;
+		using internal::PolicyData::operator=;
 
 		inline explicit PolicyBuilder(const Policy& policy) noexcept;
 
@@ -349,7 +401,7 @@ RetryPP::RetryResult<T> RetryPP::withRetry(const Policy& policy, const Classifie
 		std::condition_variable_any condvar;
 
 		std::unique_lock lock(mutex);
-		if (condvar.wait_for(lock, stop_token, delay, [&] { return stop_token.stop_requested(); }))
+		if (condvar.wait_for(lock, stop_token, delay, [&]() noexcept { return stop_token.stop_requested(); }))
 		{
 			// If stop is requested rethrow latest exception (if present)
 			if (std::holds_alternative<std::exception_ptr>(result))

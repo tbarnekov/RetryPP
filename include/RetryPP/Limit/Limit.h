@@ -41,6 +41,9 @@ namespace RetryPP
 
 		virtual bool exhausted() noexcept = 0;
 		inline virtual std::chrono::milliseconds time_remaining() const noexcept;
+
+	protected:
+		using count_t = std::chrono::milliseconds::rep;
 	};
 
 	template<class T>

@@ -15,21 +15,21 @@ namespace Tests
 		public:
 			using count_t = std::chrono::milliseconds::rep;
 
-			TEST_METHOD(Construction)
+			TEST_METHOD(Construction) noexcept
 			{
-				auto modifier = std::make_unique<Cap>(100ms);
-				Assert::IsNotNull(modifier.get());
+				Cap modifier{ 100ms };
 			}
+
 			TEST_METHOD(CapApply)
 			{
-				auto modifier = std::make_unique<Cap>(100ms);
+				Cap modifier{ 100ms };
 				auto delay = 200ms;
-				modifier->apply(delay);
-				Assert::AreEqual(static_cast<count_t>(100), delay.count());
+				modifier.apply(delay);
+				Assert::AreEqual<count_t>(100, delay.count());
 
 				delay = 50ms;
-				modifier->apply(delay);
-				Assert::AreEqual(static_cast<count_t>(50), delay.count());
+				modifier.apply(delay);
+				Assert::AreEqual<count_t>(50, delay.count());
 			}
 		};
 	}

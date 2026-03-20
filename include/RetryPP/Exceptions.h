@@ -31,7 +31,7 @@ namespace RetryPP
 	class InvalidPolicy : public std::invalid_argument
 	{
 	public:
-		inline InvalidPolicy();
+		inline InvalidPolicy() noexcept(false);
 		inline InvalidPolicy(const char* message);
 	};
 
@@ -39,7 +39,7 @@ namespace RetryPP
 	class InvalidClassifier : public std::invalid_argument
 	{
 	public:
-		inline InvalidClassifier();
+		inline InvalidClassifier() noexcept(false);
 		inline InvalidClassifier(const char* message);
 	};
 

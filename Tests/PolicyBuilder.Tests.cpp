@@ -21,10 +21,9 @@ namespace Tests
 		public:
 			using count_t = std::chrono::milliseconds::rep;
 
-			TEST_METHOD(Construction)
+			TEST_METHOD(Construction) noexcept
 			{
-				auto builder = std::make_unique<PolicyBuilder>();
-				Assert::IsNotNull(builder.get());
+				PolicyBuilder builder;
 			}
 
 			TEST_METHOD(Copy)
@@ -132,7 +131,7 @@ namespace Tests
 				Assert::IsTrue(policy.valid());
 
 				auto modifiers = policy.createBackoffModifiers();
-				Assert::AreEqual(size_t(2), modifiers.size());
+				Assert::AreEqual<size_t>(2, modifiers.size());
 				Assert::IsNotNull(dynamic_cast<Cap*>(modifiers.at(0).get()));
 				Assert::IsNotNull(dynamic_cast<Jitter<Algorithm::Full>*>(modifiers.at(1).get()));
 			}

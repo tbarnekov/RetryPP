@@ -30,12 +30,9 @@ namespace RetryPP
 	class Immediate : public Strategy
 	{
 	public:
-		inline Immediate() noexcept;
-		Immediate(const Immediate&) noexcept = default;
-		Immediate(Immediate&&) noexcept = default;
-		Immediate& operator=(const Immediate&) noexcept = default;
-		Immediate& operator=(Immediate&&) noexcept = default;
-		~Immediate() = default;
+		using Strategy::Strategy;
+
+		inline Immediate() noexcept(false);
 
 		inline std::chrono::milliseconds next() noexcept override;
 	};
@@ -46,7 +43,7 @@ namespace RetryPP
 //////////////////////////////////////////////////////////////////////////
 // Immediate implementation
 
-RetryPP::Immediate::Immediate() noexcept
+RetryPP::Immediate::Immediate() noexcept(false)
 	: Strategy{ std::chrono::milliseconds{0} }
 {
 }

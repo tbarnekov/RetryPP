@@ -23,18 +23,18 @@ namespace Tests
 			{
 				int retryCount = 0;
 
-				auto policy = PolicyBuilder()
+				const auto policy = PolicyBuilder()
 					.withStrategy<Fixed>(10ms)
 					.withLimit<RetryLimit>(3)
 					.build();
 
-				auto classifier = ClassifierBuilder<int>()
+				const auto classifier = ClassifierBuilder<int>()
 					.withSuccessCode(0)
 					.withTransientCode(1)
 					.withRetryCallback([&](auto x, auto y) { ++retryCount; })
 					.build();
 
-				auto result = withRetry(policy, classifier, []() -> int { return 1; });
+				const auto result = withRetry(policy, classifier, []() noexcept -> int { return 1; });
 
 				Assert::IsTrue(Classification::Transient == result.classification);
 				Assert::AreEqual(1, result.code);
@@ -45,16 +45,16 @@ namespace Tests
 			{
 				int retryCount = 0;
 
-				auto policy = PolicyBuilder()
+				const auto policy = PolicyBuilder()
 					.withStrategy<Fixed>(10ms)
 					.withLimit<RetryLimit>(3)
 					.build();
 
-				auto classifier = ClassifierBuilder<int>()
+				const auto classifier = ClassifierBuilder<int>()
 					.withSuccessCode(0)
 					.withTransientCode(1)
-					.withExceptionClassifier([](auto x) { return Classification::Transient; })
-					.withRetryCallback([&](auto x, auto y) { ++retryCount; })
+					.withExceptionClassifier([](auto x) noexcept { return Classification::Transient; })
+					.withRetryCallback([&](auto x, auto y) noexcept { ++retryCount; })
 					.build();
 
 				Assert::ExpectException<std::runtime_error>([&] { return withRetry(policy, classifier, []() -> int { throw std::runtime_error("runtime error"); }); });
@@ -65,20 +65,20 @@ namespace Tests
 			{
 				int retryCount = 0;
 
-				auto policy = PolicyBuilder()
+				const auto policy = PolicyBuilder()
 					.withStrategy<Fixed>(10ms)
 					.withLimit<RetryLimit>(999)
 					.build();
 
 
-				auto classifier = ClassifierBuilder<int>()
+				const auto classifier = ClassifierBuilder<int>()
 					.withSuccessCode(100)
 					.withUndefinedCodeClassification(Classification::Transient)
 					.withRetryCallback([&](auto x, auto y) { ++retryCount; })
 					.build();
 
 				int code = 95;
-				auto result = withRetry(policy, classifier, [&] { return code++; });
+				const auto result = withRetry(policy, classifier, [&]() noexcept { return code++; });
 				Assert::IsTrue(result.classification == Classification::Success);
 				Assert::AreEqual(100, result.code);
 				Assert::AreEqual(5, retryCount);
@@ -89,12 +89,12 @@ namespace Tests
 				int retryCount = 0;
 
 				// Should take ~200 seconds to hit the retry limit
-				auto policy = PolicyBuilder()
+				const auto policy = PolicyBuilder()
 					.withStrategy<Fixed>(200ms)
 					.withLimit<RetryLimit>(999)
 					.build();
 
-				auto classifier = ClassifierBuilder<int>()
+				const auto classifier = ClassifierBuilder<int>()
 					.withSuccessCode(100)
 					.withUndefinedCodeClassification(Classification::Transient)
 					.withRetryCallback([&](auto x, auto y) { ++retryCount; })
@@ -104,9 +104,9 @@ namespace Tests
 				// Signal abort after 1 second
 				std::jthread stopThread{ [&] { std::this_thread::sleep_for(1'100ms); token_source.request_stop(); } };
 
-				auto start = std::chrono::steady_clock::now();
-				auto result = withRetry(policy, classifier, token_source.get_token(), [] { return 1; });
-				auto duration = std::chrono::steady_clock::now() - start;
+				const auto start = std::chrono::steady_clock::now();
+				const auto result = withRetry(policy, classifier, token_source.get_token(), []() noexcept { return 1; });
+				const auto duration = std::chrono::steady_clock::now() - start;
 
 				Assert::IsTrue(result.classification == Classification::Transient);
 				Assert::AreEqual(1, result.code);
@@ -116,18 +116,18 @@ namespace Tests
 
 			TEST_METHOD(RetryWithParameters)
 			{
-				auto policy = PolicyBuilder()
+				const auto policy = PolicyBuilder()
 					.withStrategy<Fixed>(10ms)
 					.withLimit<RetryLimit>(999)
 					.build();
 
-				auto classifier = ClassifierBuilder<int>()
+				const auto classifier = ClassifierBuilder<int>()
 					.withSuccessCode(5)
 					.withUndefinedCodeClassification(Classification::Transient)
 					.build();
 
 				int param = 0;
-				auto result = withRetry(policy, classifier, [](int& param) { return ++param; }, param);
+				const auto result = withRetry(policy, classifier, [](int& param) noexcept { return ++param; }, param);
 				Assert::IsTrue(result.classification == Classification::Success);
 				Assert::AreEqual(5, result.code);
 			}
